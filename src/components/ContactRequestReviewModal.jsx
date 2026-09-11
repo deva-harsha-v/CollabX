@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ShieldCheck, Check, XCircle, FileText, ExternalLink, AlertCircle, UserCheck } from 'lucide-react';
 import { updateContactRequestStatus, createSignedVerificationUrl } from '../lib/storage';
 
