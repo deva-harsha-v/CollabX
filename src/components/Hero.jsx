@@ -1,8 +1,21 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles, ArrowUpRight } from 'lucide-react';
 import Reveal from './Reveal';
+import { useApp } from '../context/AppContext';
 
-const Hero = ({ onOpenJoin }) => {
+const Hero = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useApp();
+
+  const handleJoinClick = () => {
+    if (currentUser) {
+      navigate('/feed');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <section 
       id="hero" 
@@ -53,10 +66,10 @@ const Hero = ({ onOpenJoin }) => {
           <Reveal animation="scale-in" delay={400}>
             <div className="flex flex-row items-center gap-4 sm:gap-5 justify-start flex-wrap">
               <button
-                onClick={onOpenJoin}
+                onClick={handleJoinClick}
                 className="red-pill-button px-8 py-4 text-base sm:text-lg tracking-wider uppercase"
               >
-                <span>Join CollabX</span>
+                <span>{currentUser ? 'Explore Feed' : 'Join CollabX'}</span>
                 <ArrowRight className="w-5 h-5 ml-2.5 inline" />
               </button>
 
@@ -77,5 +90,3 @@ const Hero = ({ onOpenJoin }) => {
 };
 
 export default Hero;
-
-

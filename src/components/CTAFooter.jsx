@@ -1,8 +1,21 @@
 import React from 'react';
-import { ArrowRight, ShieldCheck, Heart, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import Reveal from './Reveal';
+import { useApp } from '../context/AppContext';
 
-const CTAFooter = ({ onOpenJoin }) => {
+const CTAFooter = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useApp();
+
+  const handleJoinClick = () => {
+    if (currentUser) {
+      navigate('/feed');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <div className="relative bg-[#060911] border-t border-cyan-500/10">
       {/* Final Full-Height CTA Section */}
@@ -44,10 +57,10 @@ const CTAFooter = ({ onOpenJoin }) => {
           <Reveal animation="scale-in" delay={350}>
             <div className="flex flex-col items-center">
               <button
-                onClick={onOpenJoin}
+                onClick={handleJoinClick}
                 className="red-pill-button px-12 py-5 text-xl sm:text-2xl font-black uppercase tracking-wider shadow-2xl"
               >
-                <span>Join CollabX</span>
+                <span>{currentUser ? 'Explore Live Feed' : 'Join CollabX'}</span>
                 <ArrowRight className="w-7 h-7 ml-3 inline" />
               </button>
 
