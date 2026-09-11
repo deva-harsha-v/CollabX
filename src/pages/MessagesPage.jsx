@@ -103,11 +103,11 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
   if (!room) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <div className="w-16 h-16 rounded-2xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center text-[#B3CFE5] mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-[#935073]/20 border border-[#935073]/40 flex items-center justify-center text-[#F6DBC0] mb-4">
           <MessageSquare className="w-8 h-8" />
         </div>
-        <h3 className="font-['Outfit'] font-bold text-xl text-[#F6FAFD] mb-2">Select a Chat Room</h3>
-        <p className="text-sm text-[#B3CFE5]/70 max-w-xs">
+        <h3 className="font-['Outfit'] font-bold text-xl text-[#F8F4E9] mb-2">Select a Chat Room</h3>
+        <p className="text-sm text-[#F6DBC0]/70 max-w-xs">
           Pick a challenge from the left panel to open its collaboration chat.
         </p>
       </div>
@@ -116,19 +116,19 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="px-5 py-4 border-b border-[#4A7FA7]/30 bg-[#0A1931]/80 flex items-center gap-3 shrink-0">
+      <div className="px-5 py-4 border-b border-[#935073]/30 bg-[#502D55]/80 flex items-center gap-3 shrink-0">
         <button
           onClick={onBack}
-          className="md:hidden p-1.5 rounded-lg bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] hover:text-[#F6FAFD] transition-colors"
+          className="md:hidden p-1.5 rounded-lg bg-[#935073] border border-[#935073]/40 text-[#F6DBC0] hover:text-[#F8F4E9] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <div className="w-8 h-8 rounded-xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+        <div className="w-8 h-8 rounded-xl bg-[#935073]/20 border border-[#935073]/40 flex items-center justify-center shrink-0">
+          <MessageSquare className="w-4 h-4 text-[#F6DBC0]" />
         </div>
         <div className="min-w-0">
-          <h3 className="font-bold text-[#F6FAFD] font-['Outfit'] text-base truncate">{room.post_title}</h3>
-          <span className="text-[10px] font-mono text-[#B3CFE5]/70">Collaboration Room · REALTIME</span>
+          <h3 className="font-bold text-[#F8F4E9] font-['Outfit'] text-base truncate">{room.post_title}</h3>
+          <span className="text-[10px] font-mono text-[#F6DBC0]/70">Collaboration Room · REALTIME</span>
         </div>
       </div>
 
@@ -141,8 +141,8 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 min-h-0">
         {loading ? (
-          <div className="py-12 text-center text-[#B3CFE5] font-mono text-xs flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#B3CFE5] animate-ping" />
+          <div className="py-12 text-center text-[#F6DBC0] font-mono text-xs flex items-center justify-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#F6DBC0] animate-ping" />
             <span>Loading chat history...</span>
           </div>
         ) : messages.length > 0 ? (
@@ -156,19 +156,19 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
                 key={msg.id}
                 className={'flex items-start gap-2.5 ' + (isMine ? 'flex-row-reverse' : 'flex-row')}
               >
-                <div className="w-7 h-7 rounded-full overflow-hidden border border-[#4A7FA7]/40 bg-[#0A1931] shrink-0 mt-1">
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-[#935073]/40 bg-[#502D55] shrink-0 mt-1">
                   <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
                 </div>
                 <div className={'max-w-[75%] space-y-1 ' + (isMine ? 'text-right' : 'text-left')}>
-                  <span className="text-[10px] font-mono text-[#B3CFE5]/80 block px-1">
+                  <span className="text-[10px] font-mono text-[#F6DBC0]/80 block px-1">
                     {senderName} · {new Date(msg.created_at || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <div
                     className={
                       'p-3 rounded-2xl text-xs leading-relaxed ' +
                       (isMine
-                        ? 'bg-gradient-to-r from-[#4A7FA7] to-[#1A3D63] border border-[#B3CFE5]/30 text-[#F6FAFD] rounded-tr-none shadow-md'
-                        : 'bg-[#0A1931] border border-[#4A7FA7]/30 text-[#F6FAFD] rounded-tl-none')
+                        ? 'bg-gradient-to-r from-[#935073] to-[#935073] border border-[#F6DBC0]/30 text-[#F8F4E9] rounded-tr-none shadow-md'
+                        : 'bg-[#502D55] border border-[#935073]/30 text-[#F8F4E9] rounded-tl-none')
                     }
                   >
                     {msg.content && <p>{msg.content}</p>}
@@ -181,7 +181,7 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
                             href={msg.attachment_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 underline text-[#B3CFE5] hover:text-[#F6FAFD] font-mono text-[11px]"
+                            className="inline-flex items-center gap-1.5 underline text-[#F6DBC0] hover:text-[#F8F4E9] font-mono text-[11px]"
                           >
                             <FileText className="w-3.5 h-3.5" />
                             <span>View Attachment</span>
@@ -195,7 +195,7 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
             );
           })
         ) : (
-          <div className="py-16 text-center text-[#B3CFE5]/70 font-mono text-xs">
+          <div className="py-16 text-center text-[#F6DBC0]/70 font-mono text-xs">
             No messages yet. Start the collaboration!
           </div>
         )}
@@ -203,14 +203,14 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
       </div>
 
       {attachmentName && (
-        <div className="px-4 py-2 bg-[#0A1931] border-t border-[#4A7FA7]/30 flex items-center justify-between text-xs text-[#B3CFE5] font-mono">
+        <div className="px-4 py-2 bg-[#502D55] border-t border-[#935073]/30 flex items-center justify-between text-xs text-[#F6DBC0] font-mono">
           <span className="flex items-center gap-1.5 truncate">
             <Paperclip className="w-3.5 h-3.5" /> {attachmentName}
           </span>
           <button
             type="button"
             onClick={() => { setAttachment(null); setAttachmentName(''); }}
-            className="text-[#B3CFE5]/70 hover:text-red-400 ml-2"
+            className="text-[#F6DBC0]/70 hover:text-red-400 ml-2"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -219,9 +219,9 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 
       <form
         onSubmit={handleSend}
-        className="p-3 sm:p-4 bg-[#0A1931] border-t border-[#4A7FA7]/30 flex items-center gap-2 shrink-0"
+        className="p-3 sm:p-4 bg-[#502D55] border-t border-[#935073]/30 flex items-center gap-2 shrink-0"
       >
-        <label className="p-2.5 rounded-xl bg-[#1A3D63] hover:bg-[#244b78] text-[#B3CFE5] hover:text-[#F6FAFD] cursor-pointer transition-colors shrink-0 border border-[#4A7FA7]/30">
+        <label className="p-2.5 rounded-xl bg-[#935073] hover:bg-[#244b78] text-[#F6DBC0] hover:text-[#F8F4E9] cursor-pointer transition-colors shrink-0 border border-[#935073]/30">
           <Paperclip className="w-4 h-4" />
           <input
             type="file"
@@ -237,7 +237,7 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
           placeholder="Type a message..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          className="flex-1 px-4 py-2.5 bg-[#1A3D63]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/50 focus:outline-none focus:border-[#B3CFE5] transition-colors"
+          className="flex-1 px-4 py-2.5 bg-[#935073]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/50 focus:outline-none focus:border-[#F6DBC0] transition-colors"
         />
         <button
           type="submit"
@@ -288,40 +288,40 @@ const MessagesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1931] text-[#F6FAFD] cyber-grid relative">
-      <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-[#4A7FA7]/10 rounded-full blur-[160px] pointer-events-none" />
+    <div className="min-h-screen bg-[#502D55] text-[#F8F4E9] cyber-grid relative">
+      <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-[#935073]/10 rounded-full blur-[160px] pointer-events-none" />
       <Navbar />
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-8" style={{ height: 'calc(100vh - 0px)' }}>
         <div className="h-full flex flex-col">
           <div className="mb-4 shrink-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1A3D63]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs font-mono uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#935073]/80 border border-[#935073]/40 text-[#F6DBC0] text-xs font-mono uppercase tracking-wider mb-2">
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Messages</span>
             </div>
-            <h1 className="font-['Outfit'] font-extrabold text-2xl sm:text-3xl text-[#F6FAFD] tracking-tight">
+            <h1 className="font-['Outfit'] font-extrabold text-2xl sm:text-3xl text-[#F8F4E9] tracking-tight">
               Your Collaboration Rooms
             </h1>
-            <p className="text-sm text-[#B3CFE5] mt-1">
+            <p className="text-sm text-[#F6DBC0] mt-1">
               All challenge chat rooms you have access to as a poster or accepted solver.
             </p>
           </div>
 
           <div
-            className="flex-1 min-h-0 flex rounded-2xl border border-[#4A7FA7]/30 overflow-hidden bg-[#1A3D63]/60 backdrop-blur-xl shadow-2xl"
+            className="flex-1 min-h-0 flex rounded-2xl border border-[#935073]/30 overflow-hidden bg-[#935073]/60 backdrop-blur-xl shadow-2xl"
             style={{ maxHeight: 'calc(100vh - 11rem)' }}
           >
             <div
               className={
-                'w-full md:w-72 lg:w-80 shrink-0 flex flex-col border-r border-[#4A7FA7]/30 bg-[#0A1931]/60 ' +
+                'w-full md:w-72 lg:w-80 shrink-0 flex flex-col border-r border-[#935073]/30 bg-[#502D55]/60 ' +
                 (showChat ? 'hidden md:flex' : 'flex')
               }
             >
-              <div className="px-4 py-3 border-b border-[#4A7FA7]/30 shrink-0 flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-[#B3CFE5] uppercase tracking-wider">
+              <div className="px-4 py-3 border-b border-[#935073]/30 shrink-0 flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-[#F6DBC0] uppercase tracking-wider">
                   Active Rooms ({rooms.length})
                 </span>
                 {notifications.filter(n => !n.read && n.type === 'chat_message').length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#4A7FA7] text-[#F6FAFD] text-[10px] font-mono font-bold animate-pulse">
+                  <span className="px-2 py-0.5 rounded-full bg-[#935073] text-[#F8F4E9] text-[10px] font-mono font-bold animate-pulse">
                     {notifications.filter(n => !n.read && n.type === 'chat_message').length} unread
                   </span>
                 )}
@@ -329,15 +329,15 @@ const MessagesPage = () => {
 
               <div className="flex-1 overflow-y-auto">
                 {loadingRooms ? (
-                  <div className="py-12 text-center text-[#B3CFE5]/70 font-mono text-xs flex flex-col items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#B3CFE5] animate-ping" />
+                  <div className="py-12 text-center text-[#F6DBC0]/70 font-mono text-xs flex flex-col items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#F6DBC0] animate-ping" />
                     Loading rooms...
                   </div>
                 ) : rooms.length === 0 ? (
-                  <div className="py-12 px-4 text-center text-[#B3CFE5]/70 font-mono text-xs">
-                    <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[#4A7FA7]/50" />
-                    <p className="font-semibold text-[#B3CFE5] mb-1">No rooms yet</p>
-                    <p className="text-[#B3CFE5]/60 leading-relaxed text-[11px]">
+                  <div className="py-12 px-4 text-center text-[#F6DBC0]/70 font-mono text-xs">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[#935073]/50" />
+                    <p className="font-semibold text-[#F6DBC0] mb-1">No rooms yet</p>
+                    <p className="text-[#F6DBC0]/60 leading-relaxed text-[11px]">
                       Rooms appear here once a poster accepts your contact request, or when you accept a solver's request.
                     </p>
                   </div>
@@ -357,31 +357,37 @@ const MessagesPage = () => {
                         type="button"
                         onClick={() => handleSelectRoom(room)}
                         className={
-                          'w-full text-left px-4 py-3.5 flex items-center gap-3 transition-all border-b border-[#4A7FA7]/20 last:border-0 ' +
+                          'w-full text-left px-4 py-3.5 flex items-center gap-3 transition-all border-b border-[#935073]/20 last:border-0 ' +
                           (isActive
-                            ? 'bg-[#4A7FA7]/25 border-l-2 border-l-[#B3CFE5]'
-                            : 'hover:bg-[#1A3D63]/60 border-l-2 border-l-transparent')
+                            ? 'bg-[#935073]/25 border-l-2 border-l-[#F6DBC0]'
+                            : 'hover:bg-[#935073]/60 border-l-2 border-l-transparent')
                         }
                       >
-                        <div className="relative w-9 h-9 rounded-xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+                        <div className="relative w-9 h-9 rounded-xl bg-[#935073]/20 border border-[#935073]/40 flex items-center justify-center shrink-0">
+                          <MessageSquare className="w-4 h-4 text-[#F6DBC0]" />
                           {unreadRoomCount > 0 && (
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#B3CFE5] opacity-90" />
-                              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5]" />
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F6DBC0] opacity-90" />
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#F6DBC0] shadow-[0_0_8px_#F6DBC0]" />
                             </span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <p className="text-sm font-semibold text-[#F6FAFD] truncate">{room.post_title}</p>
-                            {unreadRoomCount > 0 && (
-                              <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-[#4A7FA7] text-[#F6FAFD] border border-[#B3CFE5]/60 shadow-[0_0_6px_#B3CFE5] shrink-0 animate-pulse">
-                                {unreadRoomCount} NEW
+                          {unreadRoomCount > 0 && (
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="flex h-2 w-2 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-90"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                               </span>
-                            )}
+                              <span className="text-[10px] font-mono font-black text-red-400 uppercase tracking-wide bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/30">
+                                {unreadRoomCount} Unread {unreadRoomCount === 1 ? 'Message' : 'Messages'}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between gap-1">
+                            <p className={`text-sm font-semibold truncate ${unreadRoomCount > 0 ? 'text-[#F8F4E9] font-bold' : 'text-[#F8F4E9]'}`}>{room.post_title}</p>
                           </div>
-                          <p className="text-[10px] font-mono text-[#B3CFE5]/60 mt-0.5">
+                          <p className="text-[10px] font-mono text-[#F6DBC0]/60 mt-0.5">
                             {new Date(room.created_at).toLocaleDateString(undefined, {
                               month: 'short',
                               day: 'numeric',
@@ -392,7 +398,7 @@ const MessagesPage = () => {
                         <ChevronRight
                           className={
                             'w-4 h-4 shrink-0 transition-colors ' +
-                            (isActive ? 'text-[#B3CFE5]' : 'text-[#4A7FA7]/50')
+                            (isActive ? 'text-[#F6DBC0]' : 'text-[#935073]/50')
                           }
                         />
                       </button>

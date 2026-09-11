@@ -105,8 +105,8 @@ const AccountPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1931] text-[#F6FAFD] cyber-grid relative">
-      <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-[#4A7FA7]/10 rounded-full blur-[160px] pointer-events-none" />
+    <div className="min-h-screen bg-[#502D55] text-[#F8F4E9] cyber-grid relative">
+      <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-[#935073]/10 rounded-full blur-[160px] pointer-events-none" />
 
       <Navbar />
 
@@ -115,32 +115,32 @@ const AccountPage = () => {
         <button
           type="button"
           onClick={() => navigate('/feed')}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A3D63] hover:bg-[#244b78] border border-[#4A7FA7]/40 text-[#B3CFE5] hover:text-[#F6FAFD] text-xs font-semibold mb-6 transition-all shadow-md"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#935073] hover:bg-[#244b78] border border-[#935073]/40 text-[#F6DBC0] hover:text-[#F8F4E9] text-xs font-semibold mb-6 transition-all shadow-md"
         >
-          <ArrowLeft className="w-4 h-4 text-[#B3CFE5]" />
+          <ArrowLeft className="w-4 h-4 text-[#F6DBC0]" />
           <span>Back to Feed</span>
         </button>
 
         {/* Page Header */}
-        <div className="mb-8 border-b border-[#4A7FA7]/30 pb-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A3D63]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs font-mono uppercase tracking-wider mb-3 shadow-md backdrop-blur-md">
-            <User className="w-3.5 h-3.5 text-[#B3CFE5]" />
+        <div className="mb-8 border-b border-[#935073]/30 pb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#935073]/80 border border-[#935073]/40 text-[#F6DBC0] text-xs font-mono uppercase tracking-wider mb-3 shadow-md backdrop-blur-md">
+            <User className="w-3.5 h-3.5 text-[#F6DBC0]" />
             <span>Account Settings</span>
           </div>
-          <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#F6FAFD] tracking-tight">
+          <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#F8F4E9] tracking-tight">
             My Profile & Security
           </h1>
-          <p className="text-sm text-[#B3CFE5] mt-1">
+          <p className="text-sm text-[#F6DBC0] mt-1">
             Manage your personal profile details and update your account credentials.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Card 1: Profile Information */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-[#1A3D63]/80 border border-[#4A7FA7]/40 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+          <div className="p-6 sm:p-8 rounded-3xl bg-[#935073]/80 border border-[#935073]/40 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
             <div>
-              <h2 className="font-['Outfit'] font-bold text-xl text-[#F6FAFD] mb-6 flex items-center gap-2">
-                <User className="w-5 h-5 text-[#B3CFE5]" />
+              <h2 className="font-['Outfit'] font-bold text-xl text-[#F8F4E9] mb-6 flex items-center gap-2">
+                <User className="w-5 h-5 text-[#F6DBC0]" />
                 <span>Profile Information</span>
               </h2>
 
@@ -161,7 +161,7 @@ const AccountPage = () => {
               <form onSubmit={handleSaveProfile} className="space-y-5">
                 {/* Avatar Preview & Upload */}
                 <div className="flex items-center gap-4">
-                  <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[#4A7FA7] bg-[#0A1931] shrink-0">
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[#935073] bg-[#502D55] shrink-0">
                     <img
                       src={avatarPreview}
                       alt={name}
@@ -173,62 +173,62 @@ const AccountPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] hover:text-[#F6FAFD] text-xs font-semibold cursor-pointer transition-colors shadow-md">
-                      <Camera className="w-4 h-4 text-[#B3CFE5]" />
+                    <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#502D55] hover:bg-[#935073] border border-[#935073]/40 text-[#F6DBC0] hover:text-[#F8F4E9] text-xs font-semibold cursor-pointer transition-colors shadow-md">
+                      <Camera className="w-4 h-4 text-[#F6DBC0]" />
                       <span>Change Picture</span>
                       <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                     </label>
-                    <p className="text-[10px] text-[#B3CFE5]/60 font-mono mt-1.5">PNG, JPG or WEBP up to 5MB</p>
+                    <p className="text-[10px] text-[#F6DBC0]/60 font-mono mt-1.5">PNG, JPG or WEBP up to 5MB</p>
                   </div>
                 </div>
 
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     Full Name
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
                       placeholder="Your full name"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-medium"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Email (Read Only) */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     Email Address (Read-Only)
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="email"
                       value={currentUser?.email || ''}
                       disabled
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/40 border border-[#4A7FA7]/20 rounded-xl text-xs text-[#B3CFE5]/60 cursor-not-allowed font-mono"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/40 border border-[#935073]/20 rounded-xl text-xs text-[#F6DBC0]/60 cursor-not-allowed font-mono"
                     />
                   </div>
                 </div>
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     Phone Number
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
                     />
                   </div>
                 </div>
@@ -237,7 +237,7 @@ const AccountPage = () => {
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#4A7FA7] to-[#1A3D63] border border-[#B3CFE5]/30 text-[#F6FAFD] font-semibold text-xs transition-all shadow-md hover:scale-[1.02] disabled:opacity-50"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#935073] to-[#935073] border border-[#F6DBC0]/30 text-[#F8F4E9] font-semibold text-xs transition-all shadow-md hover:scale-[1.02] disabled:opacity-50"
                   >
                     {isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
                   </button>
@@ -247,10 +247,10 @@ const AccountPage = () => {
           </div>
 
           {/* Card 2: Password & Security */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-[#1A3D63]/80 border border-[#4A7FA7]/40 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+          <div className="p-6 sm:p-8 rounded-3xl bg-[#935073]/80 border border-[#935073]/40 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
             <div>
-              <h2 className="font-['Outfit'] font-bold text-xl text-[#F6FAFD] mb-6 flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-[#B3CFE5]" />
+              <h2 className="font-['Outfit'] font-bold text-xl text-[#F8F4E9] mb-6 flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-[#F6DBC0]" />
                 <span>Change Password</span>
               </h2>
 
@@ -271,57 +271,57 @@ const AccountPage = () => {
               <form onSubmit={handleChangePassword} className="space-y-5">
                 {/* Current Password */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     Current Password <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       required
                       placeholder="••••••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
                     />
                   </div>
-                  <p className="text-[10px] text-[#B3CFE5]/60 font-mono mt-1">
+                  <p className="text-[10px] text-[#F6DBC0]/60 font-mono mt-1">
                     Required to authorize password change
                   </p>
                 </div>
 
                 {/* New Password */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     New Password
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       placeholder="Min 6 characters"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
                     />
                   </div>
                 </div>
 
                 {/* Confirm New Password */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#F6DBC0] mb-1.5">
                     Confirm New Password
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       placeholder="Re-enter new password"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
                     />
                   </div>
                 </div>
@@ -330,7 +330,7 @@ const AccountPage = () => {
                   <button
                     type="submit"
                     disabled={isChangingPassword}
-                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#4A7FA7] to-[#1A3D63] border border-[#B3CFE5]/30 text-[#F6FAFD] font-semibold text-xs transition-all shadow-md hover:scale-[1.02] disabled:opacity-50"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#935073] to-[#935073] border border-[#F6DBC0]/30 text-[#F8F4E9] font-semibold text-xs transition-all shadow-md hover:scale-[1.02] disabled:opacity-50"
                   >
                     {isChangingPassword ? 'Updating Password...' : 'Update Password'}
                   </button>

@@ -1109,7 +1109,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
       if (msgErr) return { data: null, error: msgErr };
 
-      // Dispatch in-app notifications to other participants in this chat room
+      // Dispatch in-app notifications to all other participants in this chat room
       try {
         const { data: senderProf } = await supabase
           .from('profiles')
@@ -1120,20 +1120,50 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
         const { data: roomData } = await supabase
           .from('chat_rooms')
-          .select('post_id, posts:post_id(title)')
+          .select('post_id, posts:post_id(id, title, author_id)')
           .eq('id', roomId)
           .maybeSingle();
         const postTitle = roomData?.posts?.title || 'Challenge';
+        const postAuthorId = roomData?.posts?.author_id;
+
+        const targetUserIds = new Set();
 
         const { data: participants } = await supabase
           .from('chat_participants')
           .select('user_id')
-          .eq('chat_room_id', roomId)
-          .neq('user_id', authData.user.id);
+          .eq('chat_room_id', roomId);
+        if (participants) {
+          participants.forEach(p => {
+            if (p.user_id && p.user_id !== authData.user.id) {
+              targetUserIds.add(p.user_id);
+            }
+          });
+        }
 
-        if (participants && participants.length > 0) {
-          const notifsToInsert = participants.map(p => ({
-            user_id: p.user_id,
+        if (postAuthorId && postAuthorId !== authData.user.id) {
+          targetUserIds.add(postAuthorId);
+        }
+
+        if (roomData?.post_id) {
+          const { data: contacts } = await supabase
+            .from('contact_requests')
+            .select('solver_id')
+            .eq('post_id', roomData.post_id)
+            .eq('status', 'accepted');
+          if (contacts) {
+            contacts.forEach(c => {
+              if (c.solver_id && c.solver_id !== authData.user.id) {
+                targetUserIds.add(c.solver_id);
+              }
+            });
+          }
+        }
+
+        targetUserIds.delete(authData.user.id);
+
+        if (targetUserIds.size > 0) {
+          const notifsToInsert = Array.from(targetUserIds).map(uid => ({
+            user_id: uid,
             type: 'chat_message',
             message: `New message from ${senderName} in "${postTitle}"`,
             payload: {
@@ -1181,12 +1211,21 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
   try {
     const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
     const room = rooms.find(r => r.id === roomId);
-    if (room && room.participants) {
-      const posts = getLocal(LOCAL_POSTS, []);
-      const post = posts.find(p => p.id === room.post_id);
-      const otherParticipants = room.participants.filter(pid => pid !== session.id);
+    const posts = getLocal(LOCAL_POSTS, []);
+    const post = posts.find(p => p.id === room?.post_id);
+    const contacts = getLocal(LOCAL_CONTACTS, []);
+
+    const targetUserIds = new Set(room?.participants || []);
+    if (post?.authorId) targetUserIds.add(post.authorId);
+    if (post?.author_id) targetUserIds.add(post.author_id);
+    contacts
+      .filter(c => c.post_id === room?.post_id && c.status === 'accepted')
+      .forEach(c => targetUserIds.add(c.solver_id));
+    targetUserIds.delete(session.id);
+
+    if (targetUserIds.size > 0) {
       const notifs = getLocal(LOCAL_NOTIFS, []);
-      otherParticipants.forEach(pid => {
+      targetUserIds.forEach(pid => {
         notifs.unshift({
           id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           user_id: pid,
@@ -1195,7 +1234,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
           payload: {
             room_id: roomId,
             roomId: roomId,
-            post_id: room.post_id,
+            post_id: room?.post_id,
             post_title: post?.title,
             sender_id: session.id,
             sender_name: session.name,

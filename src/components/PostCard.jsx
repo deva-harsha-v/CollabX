@@ -55,7 +55,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
   return (
     <>
       {/* Compact Horizontal Bar View */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#1A3D63]/85 border border-[#4A7FA7]/40 hover:border-[#4A7FA7]/80 transition-all duration-300 backdrop-blur-xl shadow-xl group">
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#935073]/85 border border-[#935073]/40 hover:border-[#935073]/80 transition-all duration-300 backdrop-blur-xl shadow-xl group">
         <div className="flex items-center justify-between gap-4">
 
           {/* Left Column: Post Content Snippet */}
@@ -63,42 +63,42 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
 
             {/* Header Strip: Author, Date, Status Tag */}
             <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-[#F6FAFD] flex items-center gap-1 truncate">
+              <span className="text-xs font-semibold text-[#F8F4E9] flex items-center gap-1 truncate">
                 <span>{post.author_name || post.authorName || 'Verified Author'}</span>
-                <UserCheck className="w-3 h-3 text-[#B3CFE5] shrink-0" />
+                <UserCheck className="w-3 h-3 text-[#F6DBC0] shrink-0" />
               </span>
-              <span className="text-[#4A7FA7]/60">•</span>
-              <span className="text-[11px] font-mono text-[#B3CFE5]/80 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-[#B3CFE5]" />
+              <span className="text-[#935073]/60">•</span>
+              <span className="text-[11px] font-mono text-[#F6DBC0]/80 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-[#F6DBC0]" />
                 <span>{formatDate(post.created_at || post.createdAt)}</span>
               </span>
 
               {/* Post Status Tag */}
               {post.status === 'completed' && (
-                <span className="px-2 py-0.5 rounded-md bg-[#0A1931] text-[#B3CFE5] border border-[#4A7FA7]/50 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
-                  <CheckCircle2 className="w-3 h-3 text-[#B3CFE5]" /> RESOLVED
+                <span className="px-2 py-0.5 rounded-md bg-[#502D55] text-[#F6DBC0] border border-[#935073]/50 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
+                  <CheckCircle2 className="w-3 h-3 text-[#F6DBC0]" /> RESOLVED
                 </span>
               )}
             </div>
 
             {/* Title */}
-            <h3 className="font-['Outfit'] font-bold text-lg sm:text-xl text-[#F6FAFD] truncate group-hover:text-[#B3CFE5] transition-colors mb-1">
+            <h3 className="font-['Outfit'] font-bold text-lg sm:text-xl text-[#F8F4E9] truncate group-hover:text-[#F6DBC0] transition-colors mb-1">
               {post.title}
             </h3>
 
             {/* Truncated Description */}
-            <p className="text-xs text-[#B3CFE5]/90 leading-relaxed line-clamp-2 mb-2.5">
+            <p className="text-xs text-[#F6DBC0]/90 leading-relaxed line-clamp-2 mb-2.5">
               {truncatedDesc}
             </p>
 
             {/* Skills Pills */}
             {post.skills && Array.isArray(post.skills) && post.skills.length > 0 && (
               <div className="flex flex-wrap gap-1.5 items-center">
-                <Tag className="w-3 h-3 text-[#B3CFE5] shrink-0" />
+                <Tag className="w-3 h-3 text-[#F6DBC0] shrink-0" />
                 {post.skills.map((skill) => (
                   <span
                     key={skill}
-                    className="px-2 py-0.5 rounded-md bg-[#0A1931]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-[11px] font-mono"
+                    className="px-2 py-0.5 rounded-md bg-[#502D55]/80 border border-[#935073]/40 text-[#F6DBC0] text-[11px] font-mono"
                   >
                     {skill}
                   </span>
@@ -112,7 +112,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
 
             {/* Small Right-Docked Image Thumbnail */}
             {mediaUrl && (
-              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#4A7FA7]/40 bg-[#0A1931] shrink-0 hidden sm:block">
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#935073]/40 bg-[#502D55] shrink-0 hidden sm:block">
                 <img src={mediaUrl} alt={post.title} className="w-full h-full object-cover" />
               </div>
             )}
@@ -138,7 +138,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                       type="button"
                       onClick={() => onComplete(post.id)}
                       title="Mark Completed"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] font-semibold text-xs transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#502D55] hover:bg-[#935073] border border-[#935073]/40 text-[#F6DBC0] font-semibold text-xs transition-colors"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Done</span>
@@ -164,10 +164,10 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
         </div>
 
         {/* Live Glowing Red Progress Bar — ALWAYS VISIBLE ACROSS ALL PAGES FOR ALL USERS */}
-        <div className="mt-4 pt-3 border-t border-[#4A7FA7]/30">
+        <div className="mt-4 pt-3 border-t border-[#935073]/30">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-[#F6FAFD] font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-[11px] font-mono text-[#F8F4E9] font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse" />
                 <span>{isAuthorView ? 'Resolution Progress (Author Control)' : 'Resolution Progress'}</span>
               </span>
@@ -177,13 +177,13 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
             </div>
             
             {/* Glowing Red Percentage Badge */}
-            <div className="px-2.5 py-0.5 rounded-full bg-[#0A1931] border border-red-500/80 text-red-400 text-xs font-mono font-black shadow-[0_0_12px_rgba(239,68,68,0.35)]">
+            <div className="px-2.5 py-0.5 rounded-full bg-[#502D55] border border-red-500/80 text-red-400 text-xs font-mono font-black shadow-[0_0_12px_rgba(239,68,68,0.35)]">
               {localProgress}%
             </div>
           </div>
 
           {/* Glowing Red Track & Fill */}
-          <div className="relative w-full h-3 rounded-full bg-[#0A1931] border border-red-950/70 p-[1.5px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="relative w-full h-3 rounded-full bg-[#502D55] border border-red-950/70 p-[1.5px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-red-950 via-red-600 to-red-500 transition-all duration-500 relative"
               style={{
@@ -208,7 +208,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                 step="5"
                 value={localProgress}
                 onChange={handleProgressChange}
-                className="w-full accent-red-500 cursor-pointer h-1.5 bg-[#0A1931] rounded-lg"
+                className="w-full accent-red-500 cursor-pointer h-1.5 bg-[#502D55] rounded-lg"
               />
               <div className="flex items-center gap-1 shrink-0 self-end sm:self-center">
                 {[25, 50, 75, 100].map((preset) => (
@@ -219,7 +219,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border transition-all ${
                       localProgress === preset
                         ? 'bg-red-600 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]'
-                        : 'bg-[#0A1931] text-red-300/80 border-red-500/30 hover:bg-red-950/50 hover:text-red-200'
+                        : 'bg-[#502D55] text-red-300/80 border-red-500/30 hover:bg-red-950/50 hover:text-red-200'
                     }`}
                   >
                     {preset}%
