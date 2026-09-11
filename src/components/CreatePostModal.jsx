@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone } from 'lucide-react';
+import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone, UserCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from './RoleAutocompleteInput';
 
@@ -9,6 +9,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [solverRequirement, setSolverRequirement] = useState('organisation_only'); // 'organisation_only' | 'public_open'
   
   // Roles / Skills list
   const [skills, setSkills] = useState([]);
@@ -90,6 +91,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     setTitle('');
     setDescription('');
     setPhoneNumber('');
+    setSolverRequirement('organisation_only');
     setSkills([]);
     setOrganization('');
     setAddress('');
@@ -124,6 +126,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       title,
       description,
       phone_number: phoneNumber,
+      solver_requirement: solverRequirement,
       skills: skills.length > 0 ? skills : null, // Optional
       organization: organization || null,
       address: address || null,
@@ -226,6 +229,55 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors resize-none"
             />
+          </div>
+
+          {/* Solver Type Requirement (Mandatory & Prominently Highlighted Above Skills/Roles) */}
+          <div className="p-3.5 rounded-2xl bg-[#06142e]/90 border border-[#0ea5e9]/40 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-[#f0f9ff] uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#38bdf8]" />
+                <span>Required Solver Eligibility <span className="text-red-400">*</span></span>
+              </label>
+              <span className="text-[10px] font-mono text-[#38bdf8]/80">Access Control Level</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setSolverRequirement('organisation_only')}
+                className={`p-3 rounded-xl text-left border transition-all flex flex-col justify-between gap-1.5 ${
+                  solverRequirement === 'organisation_only'
+                    ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] border-[#38bdf8] ring-1 ring-[#38bdf8]/50 shadow-lg text-[#f0f9ff]'
+                    : 'bg-[#06142e]/60 border-[#0ea5e9]/30 text-[#38bdf8]/70 hover:text-[#f0f9ff] hover:bg-[#0b2240]/40'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <Building2 className="w-4 h-4 text-[#38bdf8] shrink-0" />
+                  <span>🏢 Organisation Member Needed</span>
+                </div>
+                <p className="text-[10px] text-[#38bdf8]/80 font-mono leading-tight">
+                  Restricted to verified institutional & organisation accounts only.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSolverRequirement('public_open')}
+                className={`p-3 rounded-xl text-left border transition-all flex flex-col justify-between gap-1.5 ${
+                  solverRequirement === 'public_open'
+                    ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] border-[#38bdf8] ring-1 ring-[#38bdf8]/50 shadow-lg text-[#f0f9ff]'
+                    : 'bg-[#06142e]/60 border-[#0ea5e9]/30 text-[#38bdf8]/70 hover:text-[#f0f9ff] hover:bg-[#0b2240]/40'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <UserCheck className="w-4 h-4 text-[#38bdf8] shrink-0" />
+                  <span>👥 Public Member / Any Solver</span>
+                </div>
+                <p className="text-[10px] text-[#38bdf8]/80 font-mono leading-tight">
+                  Open to all verified solvers & public accounts across the network.
+                </p>
+              </button>
+            </div>
           </div>
 
           {/* Skills / Roles Autocomplete (Curated list of 130+ professional roles) */}

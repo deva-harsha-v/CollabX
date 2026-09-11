@@ -30,6 +30,7 @@ const FeedPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('');
   const [progressFilter, setProgressFilter] = useState('all'); // 'all' | 'lt25' | '25to50' | '50to75' | 'gt75' | 'completed'
+  const [eligibilityFilter, setEligibilityFilter] = useState('all'); // 'all' | 'organisation_only' | 'public_open'
 
   const isMyPosts = location.pathname === '/my-posts';
   const isMyIdeas = location.pathname === '/my-ideas';
@@ -79,9 +80,10 @@ const FeedPage = () => {
     setSearchQuery('');
     setSelectedRoleFilter('');
     setProgressFilter('all');
+    setEligibilityFilter('all');
   };
 
-  const isAnyFilterActive = searchQuery.trim() !== '' || selectedRoleFilter !== '' || progressFilter !== 'all';
+  const isAnyFilterActive = searchQuery.trim() !== '' || selectedRoleFilter !== '' || progressFilter !== 'all' || eligibilityFilter !== 'all';
 
   // Extract unique roles present in loaded posts + popular roles
   const activePostRoles = useMemo(() => {
@@ -122,9 +124,14 @@ const FeedPage = () => {
       if (progressFilter === 'gt75' && prog < 75) return false;
       if (progressFilter === 'completed' && prog < 100) return false;
 
+      // 4. Eligibility Filter
+      const req = post.solver_requirement || post.solverRequirement || 'organisation_only';
+      if (eligibilityFilter === 'organisation_only' && req !== 'organisation_only') return false;
+      if (eligibilityFilter === 'public_open' && req !== 'public_open') return false;
+
       return true;
     });
-  }, [posts, searchQuery, selectedRoleFilter, progressFilter]);
+  }, [posts, searchQuery, selectedRoleFilter, progressFilter, eligibilityFilter]);
 
   const getHeaderTitle = () => {
     if (isMyPosts) return 'Your Posted Challenges';
@@ -242,6 +249,19 @@ const FeedPage = () => {
                   </select>
                 </div>
 
+                {/* Solver Eligibility Filter */}
+                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
+                  <select
+                    value={eligibilityFilter}
+                    onChange={(e) => setEligibilityFilter(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] focus:outline-none focus:border-[#38bdf8] font-mono cursor-pointer"
+                  >
+                    <option value="all" className="bg-[#06142e]">All Eligibility</option>
+                    <option value="organisation_only" className="bg-[#06142e]">🏢 Org Members Only</option>
+                    <option value="public_open" className="bg-[#06142e]">👥 Open to Public</option>
+                  </select>
+                </div>
+
                 {/* Progress Percentage Filter */}
                 <div className="relative min-w-[150px] flex-1 sm:flex-initial">
                   <select
@@ -286,6 +306,16 @@ const FeedPage = () => {
                   </span>
                 ) : (
                   <span className="text-[#f0f9ff]/80 text-[11px]">Any Role</span>
+                )}
+                {eligibilityFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#06142e] border border-[#0ea5e9]/50 text-[#38bdf8] text-[11px]">
+                    <span>
+                      {eligibilityFilter === 'organisation_only' ? '🏢 Org Members Only' : '👥 Open to Public'}
+                    </span>
+                    <button type="button" onClick={() => setEligibilityFilter('all')} className="hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
                 )}
                 {progressFilter !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#06142e] border border-red-500/50 text-red-300 text-[11px]">

@@ -36,6 +36,7 @@ import {
   adminDeletePost,
   createSignedVerificationUrl 
 } from '../lib/storage';
+import UserBadge from '../components/UserBadge';
 
 const AdminPortalPage = () => {
   const navigate = useNavigate();
@@ -386,14 +387,24 @@ const AdminPortalPage = () => {
                       onClick={() => setSelectedPost(post)}
                     >
                       <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                        <span className="text-xs font-semibold text-[#f0f9ff] flex items-center gap-1">
+                        <span className="text-xs font-semibold text-[#f0f9ff] flex items-center gap-1.5">
                           <span>{post.author?.name || post.author_name || 'Verified Author'}</span>
+                          <UserBadge user={post.author || { email: post.author_email, account_type: post.author_account_type }} size="xs" />
                         </span>
-                        <span className="text-[#0b2240]/60">•</span>
+                        <span className="text-[#0ea5e9]/40">•</span>
                         <span className="text-[11px] font-mono text-[#38bdf8]/80 flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-[#38bdf8]" />
                           <span>{new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </span>
+                        {(post.solver_requirement === 'organisation_only' || post.solverRequirement === 'organisation_only') ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-950/80 border border-amber-500/50 text-amber-300">
+                            🏢 Org Solvers Only
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
+                            👥 Public Open
+                          </span>
+                        )}
                         <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                           post.status === 'live'
                             ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
@@ -475,9 +486,12 @@ const AdminPortalPage = () => {
                             />
                           </div>
                           <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-[#f0f9ff] truncate group-hover:text-red-300 transition-colors">
-                              {user.name}
-                            </h4>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-bold text-sm text-[#f0f9ff] truncate group-hover:text-red-300 transition-colors">
+                                {user.name}
+                              </h4>
+                              <UserBadge user={user} size="xs" />
+                            </div>
                             <p className="text-[11px] text-[#38bdf8]/80 font-mono truncate">{user.email}</p>
                             {user.phone && (
                               <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-0.5">{user.phone}</p>
@@ -760,9 +774,24 @@ const AdminPortalPage = () => {
 
             {/* Poster Details Grid */}
             <div className="p-4 rounded-2xl bg-[#06142e]/80 border border-[#0ea5e9]/30 text-xs font-mono space-y-2 mb-4">
-              <div className="flex justify-between flex-wrap gap-2">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <span className="text-[#38bdf8]/70">Author Name:</span>
-                <span className="font-bold text-[#f0f9ff]">{selectedPost.author?.name || selectedPost.author_name || 'N/A'}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-[#f0f9ff]">{selectedPost.author?.name || selectedPost.author_name || 'N/A'}</span>
+                  <UserBadge user={selectedPost.author || { email: selectedPost.author_email, account_type: selectedPost.author_account_type }} size="xs" />
+                </div>
+              </div>
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <span className="text-[#38bdf8]/70">Solver Requirement:</span>
+                {(selectedPost.solver_requirement === 'organisation_only' || selectedPost.solverRequirement === 'organisation_only') ? (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-950/80 border border-amber-500/50 text-amber-300">
+                    🏢 Organisation Members Only
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
+                    👥 Open to Public Solvers
+                  </span>
+                )}
               </div>
               {selectedPost.author?.email && (
                 <div className="flex justify-between flex-wrap gap-2">
@@ -943,8 +972,9 @@ const AdminPortalPage = () => {
                                 />
                               </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="font-bold text-xs text-[#f0f9ff] truncate">{solverName}</span>
+                                  <UserBadge user={solverProfile} size="xs" />
                                   {isVerified ? (
                                     <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
                                       <ShieldCheck className="w-2.5 h-2.5" /> VERIFIED
@@ -1064,7 +1094,10 @@ const AdminPortalPage = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">{selectedUser.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">{selectedUser.name}</h3>
+                    <UserBadge user={selectedUser} size="sm" />
+                  </div>
                   <p className="text-xs text-[#38bdf8] font-mono">{selectedUser.email}</p>
                   <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-2 py-0.5 rounded-full ${
                     selectedUser.verification_uploaded

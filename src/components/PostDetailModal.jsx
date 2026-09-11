@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MapPin, Navigation, Phone, Mail, Building2, Tag, Calendar, UserCheck, ShieldCheck, Send, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { X, MapPin, Navigation, Phone, Mail, Building2, Tag, Calendar, UserCheck, ShieldCheck, Send, CheckCircle2, Clock, AlertCircle, ShieldAlert, Users, Lock } from 'lucide-react';
 import { getPostDetails, createContactRequest } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import UploadVerificationModal from './UploadVerificationModal';
+import UserBadge from './UserBadge';
 
 const PostDetailModal = ({ postId, isOpen, onClose }) => {
   const { currentUser } = useApp();
@@ -48,11 +49,20 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  const isOrgOnly = (post?.solver_requirement || post?.solverRequirement) === 'organisation_only';
+  const isUserPublic = currentUser && (currentUser.account_type === 'public' || currentUser.accountType === 'public');
+  const isBlockedPublicUser = isOrgOnly && isUserPublic && post?.author_id !== currentUser?.id && contactStatus !== 'accepted';
+
   const handleContactClick = async () => {
     if (!currentUser) return;
 
-    // Check verification status
-    if (!currentUser.verification_uploaded) {
+    if (isBlockedPublicUser) {
+      setErrorMsg('This challenge requires a verified Organisation Member. Public accounts cannot request to solve this challenge.');
+      return;
+    }
+
+    // Check verification status for public users
+    if (!currentUser.verification_uploaded && isUserPublic) {
       setIsVerifOpen(true);
       return;
     }
@@ -193,9 +203,8 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                 </div>
               )}
 
-
               {/* Author & Organization Header */}
-              <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#0ea5e9]/30">
+              <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#0ea5e9]/30 flex-wrap">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full border border-[#0ea5e9]/60 overflow-hidden bg-[#06142e] shrink-0">
                     <img
@@ -205,11 +214,9 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                     />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-[#f0f9ff] flex items-center gap-2">
+                    <h4 className="text-base font-bold text-[#f0f9ff] flex items-center gap-2 flex-wrap">
                       <span>{post.author_name}</span>
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-bold text-[#38bdf8] bg-[#06142e] px-2 py-0.5 rounded-full border border-[#0ea5e9]/35">
-                        <UserCheck className="w-3 h-3 text-[#38bdf8]" /> VERIFIED POSTER
-                      </span>
+                      <UserBadge user={{ account_type: post.author_account_type, email: post.author_email }} size="sm" />
                     </h4>
                     {post.organization && (
                       <p className="text-xs text-[#38bdf8] font-medium flex items-center gap-1 mt-0.5">
@@ -220,13 +227,24 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="text-right text-xs text-[#38bdf8]/80 font-mono">
-                  <span className="flex items-center gap-1 justify-end text-[#38bdf8] mb-0.5">
+                <div className="text-right text-xs text-[#38bdf8]/80 font-mono flex flex-col items-end gap-1">
+                  <span className="flex items-center gap-1 text-[#38bdf8]">
                     <Calendar className="w-3.5 h-3.5" /> {formatDate(post.created_at)}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-[#06142e] text-[#38bdf8] border border-[#0ea5e9]/35 text-[10px] font-bold uppercase">
-                    STATUS: {post.status}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {isOrgOnly ? (
+                      <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-[#38bdf8] border border-[#0ea5e9]/60 text-[10px] font-mono font-bold flex items-center gap-1">
+                        <Building2 className="w-3 h-3" /> ORG SOLVERS ONLY
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold flex items-center gap-1">
+                        <Users className="w-3 h-3" /> OPEN TO PUBLIC
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 rounded bg-[#06142e] text-[#38bdf8] border border-[#0ea5e9]/35 text-[10px] font-bold uppercase">
+                      STATUS: {post.status}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -336,7 +354,12 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                   className="sticky bottom-0 pt-4 pb-2 bg-gradient-to-t from-[#0b2240] via-[#0b2240]/90 to-transparent flex justify-center sm:justify-end z-20"
                   style={{ transform: `translateY(-${scrollOffset}px)`, transition: 'transform 0.15s ease-out' }}
                 >
-                  {contactStatus === 'pending' ? (
+                  {isBlockedPublicUser ? (
+                    <div className="w-full sm:w-auto p-3.5 rounded-2xl bg-[#06142e] border border-red-500/50 text-red-300 font-mono text-xs flex items-center gap-2.5 shadow-lg">
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      <span>Organisation Solvers Only — Public accounts cannot request to solve this challenge.</span>
+                    </div>
+                  ) : contactStatus === 'pending' ? (
                     <div className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-[#06142e] border border-[#0ea5e9]/50 text-[#38bdf8] font-mono text-xs font-bold flex items-center gap-2 shadow-lg">
                       <Clock className="w-4 h-4 text-[#38bdf8] animate-pulse" />
                       <span>Contact Request Pending Poster Review</span>

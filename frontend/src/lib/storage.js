@@ -19,6 +19,53 @@ const LOCAL_CONTACTS = 'collabx_contacts';
 const LOCAL_CHAT_ROOMS = 'collabx_chat_rooms';
 const LOCAL_CHAT_MSGS = 'collabx_chat_msgs';
 
+export const ORG_DOMAINS = [
+  { domain: '@sves.org.in', name: 'Sri Vasavi Engineering College' },
+  { domain: '@gfg.in', name: 'GeeksForGeeks' },
+  { domain: '@google.com', name: 'Google' },
+  { domain: '@mlsc.in', name: 'Microsoft' },
+  { domain: '@collabx.org', name: 'CollabX Organization' },
+];
+
+export const isValidOrgEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const lower = email.trim().toLowerCase();
+  return ORG_DOMAINS.some(d => lower.endsWith(d.domain));
+};
+
+export const getOrgInfo = (email) => {
+  if (!email || typeof email !== 'string') return null;
+  const lower = email.trim().toLowerCase();
+  return ORG_DOMAINS.find(d => lower.endsWith(d.domain)) || null;
+};
+
+export const getUserAccountType = (user) => {
+  if (!user) return 'public';
+  if (user.account_type) return user.account_type;
+  if (user.accountType) return user.accountType;
+  if (user.email && isValidOrgEmail(user.email)) return 'organisation';
+  const localMap = getLocal('collabx_user_account_types_map', {});
+  if (user.id && localMap[user.id]) return localMap[user.id];
+  return 'public';
+};
+
+export function extractPostRequirement(post) {
+  if (!post) return 'organisation_only';
+  const localMap = getLocal('collabx_post_req_map', {});
+  if (post.id && typeof localMap[post.id] === 'string') {
+    return localMap[post.id];
+  }
+  if (Array.isArray(post.skills)) {
+    const reqItem = post.skills.find(s => typeof s === 'string' && s.startsWith('__req:'));
+    if (reqItem) {
+      return reqItem.replace('__req:', '');
+    }
+  }
+  if (post.solver_requirement) return post.solver_requirement;
+  if (post.solverRequirement) return post.solverRequirement;
+  return 'organisation_only';
+}
+
 // Local storage helper
 const getLocal = (key, fallback = []) => {
   try {
@@ -67,6 +114,7 @@ export async function getCurrentUser() {
           phone: profile.phone,
           avatar: profile.avatar_url,
           skills: userSkills,
+          account_type: getUserAccountType(profile),
           verification_uploaded: profile.verification_uploaded,
           verification_document_url: profile.verification_document_url,
         },
@@ -81,7 +129,7 @@ export async function getCurrentUser() {
   const session = getLocal(LOCAL_SESSION, null);
   if (session) {
     const localSkills = getLocal(`collabx_user_skills_${session.id}`, session.skills || []);
-    return { data: { ...session, skills: localSkills }, error: null };
+    return { data: { ...session, skills: localSkills, account_type: getUserAccountType(session) }, error: null };
   }
   return { data: null, error: null };
 }
@@ -92,6 +140,9 @@ export async function getCurrentUser() {
 export async function signUp(userData) {
   const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}`;
   const skills = Array.isArray(userData.skills) ? userData.skills : [];
+  const accountType = userData.account_type || (isValidOrgEmail(userData.email) ? 'organisation' : 'public');
+  const isOrg = accountType === 'organisation';
+  const isVerified = isOrg || Boolean(userData.verificationDocument);
 
   if (isSupabaseConfigured) {
     try {
@@ -103,6 +154,7 @@ export async function signUp(userData) {
             name: userData.name.trim(),
             phone: userData.phone || null,
             avatar_url: defaultAvatar,
+            account_type: accountType,
           }
         }
       });
@@ -112,30 +164,50 @@ export async function signUp(userData) {
 
       const userId = authData.user.id;
       let avatarUrl = defaultAvatar;
+      let docUrl = null;
 
-      // Save user skills in local cache map
+      // Save user skills & account type in local cache map
       setLocal(`collabx_user_skills_${userId}`, skills);
+      const accMap = getLocal('collabx_user_account_types_map', {});
+      accMap[userId] = accountType;
+      setLocal('collabx_user_account_types_map', accMap);
 
-      // Handle custom avatar upload if provided and session is authenticated
-      if (userData.avatar && userData.avatar.startsWith('data:image')) {
-        const fileName = `${userId}_${Date.now()}.png`;
-        const blob = await (await fetch(userData.avatar)).blob();
-        const { data: uploadData } = await supabase.storage
-          .from('profile-pictures')
-          .upload(fileName, blob, { contentType: 'image/png' });
-
-        if (uploadData) {
-          const { data: publicUrlData } = supabase.storage
-            .from('profile-pictures')
-            .getPublicUrl(fileName);
-          avatarUrl = publicUrlData.publicUrl;
-
-          // Update profile row with custom avatar URL
-          await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
+      // Handle document upload for public accounts
+      if (userData.verificationDocument && userData.verificationDocument.base64) {
+        try {
+          const docFileName = `doc_${userId}_${Date.now()}.pdf`;
+          const blob = await (await fetch(userData.verificationDocument.base64)).blob();
+          const { data: upDoc } = await supabase.storage
+            .from('verification-documents')
+            .upload(docFileName, blob);
+          if (upDoc) docUrl = docFileName;
+        } catch (e) {
+          console.warn('Doc upload fallback notice:', e);
         }
       }
 
-      // Upsert profile record as fallback (trigger already creates bare profile row server-side)
+      // Handle custom avatar upload if provided
+      if (userData.avatar && userData.avatar.startsWith('data:image')) {
+        try {
+          const fileName = `${userId}_${Date.now()}.png`;
+          const blob = await (await fetch(userData.avatar)).blob();
+          const { data: uploadData } = await supabase.storage
+            .from('profile-pictures')
+            .upload(fileName, blob, { contentType: 'image/png' });
+
+          if (uploadData) {
+            const { data: publicUrlData } = supabase.storage
+              .from('profile-pictures')
+              .getPublicUrl(fileName);
+            avatarUrl = publicUrlData.publicUrl;
+            await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
+          }
+        } catch (e) {
+          console.warn('Avatar upload fallback notice:', e);
+        }
+      }
+
+      // Upsert profile record
       const { error: profErr } = await supabase.from('profiles').upsert([{
         id: userId,
         name: userData.name.trim(),
@@ -143,7 +215,8 @@ export async function signUp(userData) {
         phone: userData.phone || null,
         avatar_url: avatarUrl,
         skills: skills.length > 0 ? skills : null,
-        verification_uploaded: false,
+        verification_uploaded: isVerified,
+        verification_document_url: docUrl,
       }], { onConflict: 'id' });
 
       if (profErr) {
@@ -157,7 +230,9 @@ export async function signUp(userData) {
         phone: userData.phone || null,
         avatar: avatarUrl,
         skills: skills,
-        verification_uploaded: false,
+        account_type: accountType,
+        verification_uploaded: isVerified,
+        verification_document_url: docUrl,
       };
 
       setLocal(LOCAL_SESSION, newUser);
@@ -175,6 +250,9 @@ export async function signUp(userData) {
 
   const newUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   setLocal(`collabx_user_skills_${newUserId}`, skills);
+  const accMap = getLocal('collabx_user_account_types_map', {});
+  accMap[newUserId] = accountType;
+  setLocal('collabx_user_account_types_map', accMap);
 
   const newUser = {
     id: newUserId,
@@ -184,8 +262,9 @@ export async function signUp(userData) {
     phone: userData.phone || null,
     avatar: userData.avatar || defaultAvatar,
     skills: skills,
-    verification_uploaded: false,
-    verification_document_url: null,
+    account_type: accountType,
+    verification_uploaded: isVerified,
+    verification_document_url: userData.verificationDocument?.base64 || null,
     createdAt: new Date().toISOString(),
   };
 
@@ -227,6 +306,7 @@ export async function signIn(email, password) {
         phone: profile.phone,
         avatar: profile.avatar_url,
         skills: userSkills,
+        account_type: getUserAccountType(profile),
         verification_uploaded: profile.verification_uploaded,
       };
 
@@ -243,7 +323,7 @@ export async function signIn(email, password) {
   if (!user) return { data: null, error: { message: 'Invalid email or password.' } };
 
   const localSkills = getLocal(`collabx_user_skills_${user.id}`, user.skills || []);
-  const userWithSkills = { ...user, skills: localSkills };
+  const userWithSkills = { ...user, skills: localSkills, account_type: getUserAccountType(user) };
 
   setLocal(LOCAL_SESSION, userWithSkills);
   return { data: userWithSkills, error: null };
@@ -261,9 +341,13 @@ export async function signOut() {
 }
 
 /**
- * Create Post: Stores required phone_number, optional skills, float coordinates
+ * Create Post: Stores required phone_number, optional skills, float coordinates, solver_requirement
  */
 export async function createPost(postData) {
+  const solverReq = postData.solver_requirement || postData.solverRequirement || 'organisation_only';
+  const rawSkills = Array.isArray(postData.skills) ? [...postData.skills] : [];
+  const encodedSkills = [...rawSkills, `__req:${solverReq}`];
+
   if (isSupabaseConfigured) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -288,7 +372,7 @@ export async function createPost(postData) {
         title: postData.title.trim(),
         description: postData.description.trim(),
         organization: postData.organization ? postData.organization.trim() : null,
-        skills: postData.skills && postData.skills.length > 0 ? postData.skills : null, // Nullable
+        skills: encodedSkills,
         phone_number: postData.phone_number.trim(), // Required
         address: postData.address ? postData.address.trim() : null,
         latitude: postData.coordinates?.latitude || null, // Full unrounded float
@@ -299,7 +383,21 @@ export async function createPost(postData) {
 
       if (insertErr) return { data: null, error: insertErr };
 
-      return { data: newPost, error: null };
+      if (newPost?.id) {
+        const reqMap = getLocal('collabx_post_req_map', {});
+        reqMap[newPost.id] = solverReq;
+        setLocal('collabx_post_req_map', reqMap);
+      }
+
+      return { 
+        data: { 
+          ...newPost, 
+          skills: cleanPostSkills(newPost.skills), 
+          solver_requirement: solverReq,
+          progress: extractPostProgress(newPost) 
+        }, 
+        error: null 
+      };
     } catch (err) {
       return { data: null, error: { message: err.message } };
     }
@@ -308,15 +406,22 @@ export async function createPost(postData) {
   // Fallback Local Storage
   const posts = getLocal(LOCAL_POSTS, []);
   const session = getLocal(LOCAL_SESSION, {});
+  const newPostId = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  const reqMap = getLocal('collabx_post_req_map', {});
+  reqMap[newPostId] = solverReq;
+  setLocal('collabx_post_req_map', reqMap);
 
   const newPost = {
-    id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: newPostId,
     authorId: session.id,
     authorName: session.name,
     authorAvatar: session.avatar,
+    author_account_type: session.account_type || getUserAccountType(session),
     title: postData.title.trim(),
     description: postData.description.trim(),
     skills: postData.skills || null,
+    solver_requirement: solverReq,
     phone_number: postData.phone_number.trim(),
     organization: postData.organization ? postData.organization.trim() : null,
     address: postData.address ? postData.address.trim() : null,
@@ -355,7 +460,7 @@ export function extractPostProgress(post) {
 
 export function cleanPostSkills(skills) {
   if (!Array.isArray(skills)) return [];
-  return skills.filter(s => typeof s === 'string' && !s.startsWith('__progress:'));
+  return skills.filter(s => typeof s === 'string' && !s.startsWith('__progress:') && !s.startsWith('__req:'));
 }
 
 /**
@@ -376,6 +481,7 @@ export async function getAllPosts() {
           data: directPosts.map(p => ({ 
             ...p, 
             skills: cleanPostSkills(p.skills),
+            solver_requirement: extractPostRequirement(p),
             progress: extractPostProgress(p),
             phone_number: null,
             latitude: null,
@@ -394,12 +500,13 @@ export async function getAllPosts() {
           .map(p => ({ 
             ...p, 
             skills: cleanPostSkills(p.skills),
+            solver_requirement: extractPostRequirement(p),
             progress: extractPostProgress(p),
             phone_number: null,
             latitude: null,
             longitude: null,
           })), 
-        error: null 
+          error: null 
       };
     } catch (err) {
       return { data: [], error: { message: err.message } };
@@ -415,10 +522,12 @@ export async function getAllPosts() {
       author_id: p.authorId,
       author_name: p.authorName,
       author_avatar: p.authorAvatar,
+      author_account_type: p.author_account_type || 'public',
       title: p.title,
       description: p.description,
       organization: p.organization,
       skills: cleanPostSkills(p.skills),
+      solver_requirement: extractPostRequirement(p),
       media_url: p.media,
       status: p.status,
       created_at: p.createdAt,
@@ -472,6 +581,7 @@ export async function getPostDetails(postId) {
             description: postRow.description,
             organization: postRow.organization,
             skills: cleanPostSkills(postRow.skills),
+            solver_requirement: extractPostRequirement(postRow),
             address: postRow.address,
             phone_number: isAccepted ? postRow.phone_number : null,
             latitude: isAccepted ? postRow.latitude : null,
@@ -495,6 +605,7 @@ export async function getPostDetails(postId) {
           data: { 
             ...detail, 
             skills: cleanPostSkills(detail.skills),
+            solver_requirement: extractPostRequirement(detail),
             progress: extractPostProgress(detail) 
           }, 
           error: null 
@@ -524,10 +635,12 @@ export async function getPostDetails(postId) {
       author_id: post.authorId,
       author_name: post.authorName,
       author_avatar: post.authorAvatar,
+      author_account_type: post.author_account_type || 'public',
       title: post.title,
       description: post.description,
       organization: post.organization,
       skills: cleanPostSkills(post.skills),
+      solver_requirement: extractPostRequirement(post),
       address: post.address,
       phone_number: isAccepted ? post.phone_number : null,
       latitude: isAccepted ? post.coordinates?.latitude : null,
@@ -560,6 +673,7 @@ export async function getPostsByUser(userId) {
         data: (data || []).map(p => ({ 
           ...p, 
           skills: cleanPostSkills(p.skills),
+          solver_requirement: extractPostRequirement(p),
           progress: extractPostProgress(p) 
         })), 
         error 
@@ -575,6 +689,7 @@ export async function getPostsByUser(userId) {
     .map(p => ({ 
       ...p, 
       skills: cleanPostSkills(p.skills),
+      solver_requirement: extractPostRequirement(p),
       progress: extractPostProgress(p) 
     }));
   return { data: userPosts, error: null };
@@ -610,6 +725,7 @@ export async function getMyIdeas() {
             data: posts.map(p => ({ 
               ...p, 
               skills: cleanPostSkills(p.skills),
+              solver_requirement: extractPostRequirement(p),
               progress: extractPostProgress(p) 
             })), 
             error: null 
@@ -622,6 +738,7 @@ export async function getMyIdeas() {
         data: (rpcData || []).map(p => ({ 
           ...p, 
           skills: cleanPostSkills(p.skills),
+          solver_requirement: extractPostRequirement(p),
           progress: extractPostProgress(p) 
         })), 
         error: rpcErr 
@@ -645,10 +762,12 @@ export async function getMyIdeas() {
       author_id: p.authorId,
       author_name: p.authorName,
       author_avatar: p.authorAvatar,
+      author_account_type: p.author_account_type || 'public',
       title: p.title,
       description: p.description,
       organization: p.organization,
       skills: cleanPostSkills(p.skills),
+      solver_requirement: extractPostRequirement(p),
       address: p.address,
       phone_number: p.phone_number,
       latitude: p.coordinates?.latitude,
@@ -2000,7 +2119,12 @@ export async function getAllAdminPosts() {
           data: data.map(p => ({
             ...p,
             skills: cleanPostSkills(p.skills),
+            solver_requirement: extractPostRequirement(p),
             progress: extractPostProgress(p),
+            author: p.author ? {
+              ...p.author,
+              account_type: getUserAccountType(p.author),
+            } : null,
           })),
           error: null,
         };
@@ -2016,6 +2140,7 @@ export async function getAllAdminPosts() {
     data: posts.map(p => ({
       ...p,
       skills: cleanPostSkills(p.skills),
+      solver_requirement: extractPostRequirement(p),
       progress: extractPostProgress(p),
     })), 
     error: null 
@@ -2033,14 +2158,26 @@ export async function getAllAdminUsers() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      return { data: data || [], error };
+      return { 
+        data: (data || []).map(u => ({
+          ...u,
+          account_type: getUserAccountType(u),
+        })), 
+        error 
+      };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
   }
 
   const users = getLocal(LOCAL_USERS, []);
-  return { data: users, error: null };
+  return { 
+    data: users.map(u => ({
+      ...u,
+      account_type: getUserAccountType(u),
+    })), 
+    error: null 
+  };
 }
 
 /**

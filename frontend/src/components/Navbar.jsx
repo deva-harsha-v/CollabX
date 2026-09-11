@@ -17,6 +17,7 @@ import {
 import { useApp } from '../context/AppContext';
 import ContactRequestReviewModal from './ContactRequestReviewModal';
 import PostDetailModal from './PostDetailModal';
+import UserBadge from './UserBadge';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -319,7 +320,8 @@ const Navbar = () => {
                   <div className="absolute right-0 mt-2 w-48 py-2 bg-[#0b2240]/95 border border-[#0ea5e9]/40 rounded-2xl backdrop-blur-2xl shadow-2xl z-50 text-xs">
                     <div className="px-3.5 py-2 border-b border-[#0ea5e9]/30 mb-1">
                       <p className="font-bold text-[#f0f9ff] truncate">{currentUser.name}</p>
-                      <p className="text-[10px] text-[#38bdf8]/80 font-mono truncate">{currentUser.email}</p>
+                      <p className="text-[10px] text-[#38bdf8]/80 font-mono truncate mb-1.5">{currentUser.email}</p>
+                      <UserBadge user={currentUser} size="xs" />
                     </div>
 
                     <button

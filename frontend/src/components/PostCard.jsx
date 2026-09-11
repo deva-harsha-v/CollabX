@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Tag, Calendar, UserCheck, Trash2, CheckCircle2 } from 'lucide-react';
+import { Eye, Tag, Calendar, UserCheck, Trash2, CheckCircle2, Building2, Users } from 'lucide-react';
 import PostDetailModal from './PostDetailModal';
+import UserBadge from './UserBadge';
 
 const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -51,6 +52,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
   };
 
   const currentStage = getProgressStage(localProgress);
+  const isOrgOnly = (post.solver_requirement || post.solverRequirement) === 'organisation_only';
 
   return (
     <>
@@ -61,11 +63,11 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
           {/* Left Column: Post Content Snippet */}
           <div className="flex-1 min-w-0 text-left">
 
-            {/* Header Strip: Author, Date, Status Tag */}
-            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-[#f0f9ff] flex items-center gap-1 truncate">
+            {/* Header Strip: Author, Badges, Date, Solver Req, Status Tag */}
+            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+              <span className="text-xs font-semibold text-[#f0f9ff] flex items-center gap-1.5 truncate">
                 <span>{post.author_name || post.authorName || 'Verified Author'}</span>
-                <UserCheck className="w-3 h-3 text-[#38bdf8] shrink-0" />
+                <UserBadge user={{ account_type: post.author_account_type, email: post.author_email }} size="xs" />
               </span>
               <span className="text-[#0b2240]/60">•</span>
               <span className="text-[11px] font-mono text-[#38bdf8]/80 flex items-center gap-1">
@@ -73,10 +75,21 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                 <span>{formatDate(post.created_at || post.createdAt)}</span>
               </span>
 
+              {/* Solver Requirement Pill */}
+              {isOrgOnly ? (
+                <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-[#38bdf8] border border-[#0ea5e9]/60 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
+                  <Building2 className="w-3 h-3 text-[#38bdf8]" /> ORG MEMBERS ONLY
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
+                  <Users className="w-3 h-3 text-cyan-300" /> OPEN TO PUBLIC
+                </span>
+              )}
+
               {/* Post Status Tag */}
               {post.status === 'completed' && (
-                <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-[#38bdf8] border border-[#0ea5e9]/50 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
-                  <CheckCircle2 className="w-3 h-3 text-[#38bdf8]" /> RESOLVED
+                <span className="px-2 py-0.5 rounded-md bg-[#06142e] text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold flex items-center gap-1 shadow-sm">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-300" /> RESOLVED
                 </span>
               )}
             </div>

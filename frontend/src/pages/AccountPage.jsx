@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { useApp } from '../context/AppContext';
 import { updateUserProfile, changeUserPassword } from '../lib/storage';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
+import UserBadge from '../components/UserBadge';
 
 const AccountPage = () => {
   const navigate = useNavigate();
@@ -142,10 +143,13 @@ const AccountPage = () => {
           {/* Card 1: Profile Information */}
           <div className="p-6 sm:p-8 rounded-3xl bg-[#0b2240]/80 border border-[#0ea5e9]/35 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
             <div>
-              <h2 className="font-['Outfit'] font-bold text-xl text-[#f0f9ff] mb-6 flex items-center gap-2">
-                <User className="w-5 h-5 text-[#38bdf8]" />
-                <span>Profile Information</span>
-              </h2>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
+                <h2 className="font-['Outfit'] font-bold text-xl text-[#f0f9ff] flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#38bdf8]" />
+                  <span>Profile Information</span>
+                </h2>
+                <UserBadge user={currentUser} size="sm" />
+              </div>
 
               {profileErrorMsg && (
                 <div className="mb-4 p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">

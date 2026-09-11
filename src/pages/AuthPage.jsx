@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound } from 'lucide-react';
-import { signUp, signIn, adminSignIn } from '../lib/storage';
+import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound, Phone, Building2, UserCheck, FileCheck } from 'lucide-react';
+import { signUp, signIn, adminSignIn, isValidOrgEmail } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 
@@ -10,10 +10,12 @@ const AuthPage = () => {
   const { currentUser, loginUser } = useApp();
 
   const [mode, setMode] = useState('signup'); // 'signup' | 'signin'
+  const [accountType, setAccountType] = useState('organisation'); // 'organisation' (default) | 'public'
   
   // Sign Up Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null); // base64 string
@@ -76,6 +78,7 @@ const AuthPage = () => {
     const reader = new FileReader();
     reader.onload = () => {
       setDocBase64(reader.result);
+      setErrorMsg('');
     };
     reader.readAsDataURL(file);
   };
@@ -99,6 +102,27 @@ const AuthPage = () => {
         setErrorMsg('Please enter a valid email address.');
         return;
       }
+
+      // Organization Account Validation: Must match approved domain (without revealing domain hints)
+      if (accountType === 'organisation') {
+        if (!isValidOrgEmail(email)) {
+          setErrorMsg('Invalid organization email address. Please use your official organization email.');
+          return;
+        }
+      }
+
+      // Public Account Validation: Mandatory Phone and Mandatory Document Upload
+      if (accountType === 'public') {
+        if (!phone.trim()) {
+          setErrorMsg('Phone number is mandatory for public accounts.');
+          return;
+        }
+        if (!docBase64) {
+          setErrorMsg('Official verification document upload is mandatory for public accounts (Aadhaar, Driving License, PAN card, etc.).');
+          return;
+        }
+      }
+
       if (password.length < 6) {
         setErrorMsg('Password must be at least 6 characters long.');
         return;
@@ -114,6 +138,8 @@ const AuthPage = () => {
         name,
         email,
         password,
+        phone: phone.trim() || null,
+        account_type: accountType,
         avatar: avatarPreview || getInitialsAvatar(name),
         skills,
         verificationDocument: docBase64 ? { name: docName, base64: docBase64 } : null,
@@ -175,8 +201,8 @@ const AuthPage = () => {
       {/* Auth Card Shell */}
       <div className="relative z-10 w-full max-w-md p-8 bg-[#0b2240]/90 border border-[#0ea5e9]/35 rounded-3xl backdrop-blur-2xl shadow-[0_0_50px_rgba(74, 127, 167,0.25)]">
         
-        {/* Toggle Mode Tabs */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-[#06142e]/80 border border-[#0ea5e9]/30 rounded-2xl">
+        {/* Toggle Mode Tabs (Create Account / Sign In) */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 mb-3 bg-[#06142e]/80 border border-[#0ea5e9]/30 rounded-2xl">
           <button
             type="button"
             onClick={() => { setMode('signup'); setErrorMsg(''); }}
@@ -202,14 +228,49 @@ const AuthPage = () => {
           </button>
         </div>
 
+        {/* Account Type Selector (Organisation vs Public) - Positioned directly below Create Account / Sign In */}
+        {mode === 'signup' && (
+          <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-[#06142e]/90 border border-[#0ea5e9]/40 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => { setAccountType('organisation'); setErrorMsg(''); }}
+              className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                accountType === 'organisation'
+                  ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
+                  : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span>Organisation Account</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setAccountType('public'); setErrorMsg(''); }}
+              className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                accountType === 'public'
+                  ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
+                  : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span>Public Account</span>
+            </button>
+          </div>
+        )}
+
         {/* Card Header */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
-            {mode === 'signup' ? 'Join the CollabX Network' : 'Welcome Back'}
+            {mode === 'signup' 
+              ? (accountType === 'organisation' ? 'Organisation Member Registration' : 'Public Solver Registration')
+              : 'Welcome Back'}
           </h2>
           <p className="text-xs text-[#38bdf8]/80 mt-1">
             {mode === 'signup'
-              ? 'Universal account for problem solvers, researchers & innovators'
+              ? (accountType === 'organisation'
+                  ? 'Verified institutional account for academic, research, and corporate members'
+                  : 'Individual account with official identity document verification')
               : 'Enter your credentials to access the verified challenge feed'}
           </p>
         </div>
@@ -273,21 +334,45 @@ const AuthPage = () => {
 
           {/* Email Address */}
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5">
-              Email Address
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5 flex items-center justify-between">
+              <span>{accountType === 'organisation' ? 'Official Organization Email' : 'Email Address'} <span className="text-[#38bdf8]">*</span></span>
+              {accountType === 'organisation' && (
+                <span className="text-[10px] text-[#38bdf8]/80 font-mono">Approved Org Domains Only</span>
+              )}
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
               <input
                 type="email"
                 required
-                placeholder="name@university.edu or organization.org"
+                placeholder={accountType === 'organisation' ? 'your.name@organisation.domain' : 'your.email@example.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
               />
             </div>
           </div>
+
+          {/* Phone Number (MANDATORY for Public Account, Optional for Organisation) */}
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5 flex items-center justify-between">
+                <span>Phone Number {accountType === 'public' ? <span className="text-red-400 font-bold">* (Mandatory)</span> : <span className="text-[10px] text-[#38bdf8]/60 font-normal">(Optional)</span>}</span>
+                {accountType === 'public' && <span className="text-[10px] text-red-400 font-mono font-normal">Required for Public Profile</span>}
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
+                <input
+                  type="tel"
+                  required={accountType === 'public'}
+                  placeholder="+91 98765 43210 / +1 (555) 000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Password */}
           <div>
@@ -339,21 +424,21 @@ const AuthPage = () => {
             </div>
           )}
 
-          {/* Optional Verification Document (Sign Up only) */}
-          {mode === 'signup' && (
+          {/* Verification Document Section */}
+          {mode === 'signup' && accountType === 'public' && (
             <div className="pt-2">
-              <div className="p-3.5 rounded-xl bg-[#06142e]/60 border border-dashed border-[#0ea5e9]/35 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#06142e]/80 border border-dashed border-red-500/50 text-xs shadow-inner">
                 <div className="flex items-start gap-2.5">
-                  <Upload className="w-4 h-4 text-[#38bdf8] shrink-0 mt-0.5" />
+                  <Upload className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-[#f0f9ff]">
-                      Upload Verification Document <span className="text-[10px] text-[#38bdf8] font-mono font-normal">(Optional)</span>
+                    <p className="font-semibold text-[#f0f9ff] flex items-center justify-between">
+                      <span>Official Verification Document <span className="text-red-400 font-bold">* (Mandatory)</span></span>
                     </p>
                     <p className="text-[11px] text-[#38bdf8]/80 mt-0.5 leading-snug">
-                      Optional — you can verify your credentials later. Accepts PDF/PNG proof.
+                      Mandatory for Public Accounts. Upload Aadhaar, Driving License, PAN card, or Government Photo ID (PDF, PNG, JPG).
                     </p>
-                    <label className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#0b2240] border border-[#0ea5e9]/35 text-[11px] font-medium text-[#38bdf8] hover:bg-[#0b2240]/30 cursor-pointer transition-colors">
-                      <span>{docName || 'Choose File'}</span>
+                    <label className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b2240] hover:bg-[#143d6e] border border-[#0ea5e9]/40 text-[11px] font-medium text-[#38bdf8] hover:text-[#f0f9ff] cursor-pointer transition-colors shadow">
+                      <span>{docName || 'Select ID Document'}</span>
                       <input
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg"
@@ -364,6 +449,16 @@ const AuthPage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Organisation Account Direct Verification Note */}
+          {mode === 'signup' && accountType === 'organisation' && (
+            <div className="p-3 rounded-xl bg-[#06142e]/60 border border-[#0ea5e9]/40 text-xs flex items-center gap-2.5 text-[#38bdf8]">
+              <ShieldCheck className="w-4 h-4 text-[#38bdf8] shrink-0" />
+              <p className="text-[11px] leading-snug">
+                <span className="font-bold text-[#f0f9ff]">Institutional Clearance:</span> No document upload needed. Verified via your official organization domain.
+              </p>
             </div>
           )}
 
