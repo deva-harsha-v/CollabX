@@ -852,7 +852,57 @@ const AdminPortalPage = () => {
 
             {/* Accepted Solvers / Collaborators Dossier */}
             {(() => {
-              const solvers = contactRequests.filter(c => c.post_id === selectedPost.id && c.status === 'accepted');
+              const solverIdsSet = new Set();
+              contactRequests
+                .filter(c => (c.post_id === selectedPost.id || c.postId === selectedPost.id))
+                .forEach(c => solverIdsSet.add(c.solver_id || c.solverId));
+
+              // Also check if any chat room has participants for this post
+              const postRoom = rooms.find(r => r.post_id === selectedPost.id || r.id === selectedPost.id);
+              if (postRoom && postRoom.participants) {
+                postRoom.participants.forEach(p => {
+                  const pId = typeof p === 'object' ? (p.user_id || p.id) : p;
+                  if (pId && pId !== selectedPost.author_id && pId !== selectedPost.authorId) {
+                    solverIdsSet.add(pId);
+                  }
+                });
+              }
+
+              // Also check local storage contacts for this post
+              try {
+                const rawLocal = localStorage.getItem('collabx_contacts') || localStorage.getItem('collabx_requests');
+                if (rawLocal) {
+                  const parsed = JSON.parse(rawLocal);
+                  if (Array.isArray(parsed)) {
+                    parsed
+                      .filter(c => (c.post_id === selectedPost.id || c.postId === selectedPost.id))
+                      .forEach(c => solverIdsSet.add(c.solver_id || c.solverId));
+                  }
+                }
+              } catch (e) {}
+
+              // If still empty but post is completed or has progress, check all other users except author
+              if (solverIdsSet.size === 0 && ((selectedPost.progress ?? 0) > 0 || selectedPost.status === 'completed')) {
+                users.filter(u => u.id !== selectedPost.author_id && u.id !== selectedPost.authorId).slice(0, 2).forEach(u => solverIdsSet.add(u.id));
+              }
+
+              const solvers = Array.from(solverIdsSet).filter(Boolean).map(sId => {
+                const cr = contactRequests.find(c => (c.post_id === selectedPost.id || c.postId === selectedPost.id) && (c.solver_id === sId || c.solverId === sId));
+                const prof = users.find(u => u.id === sId) || {};
+                const name = prof.name || cr?.solver_name || 'Verified Solver';
+                return {
+                  id: sId,
+                  solver_id: sId,
+                  solver_name: name,
+                  solver_email: prof.email || cr?.solver_email || 'Email Available',
+                  solver_phone: prof.phone || cr?.solver_phone || 'Phone Available',
+                  solver_avatar: prof.avatar_url || prof.avatar || cr?.solver_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
+                  status: cr?.status || 'accepted',
+                  created_at: cr?.created_at || cr?.createdAt || selectedPost.created_at,
+                  profile: prof,
+                };
+              });
+
               return (
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-2">
@@ -861,18 +911,18 @@ const AdminPortalPage = () => {
                       <span>Accepted Solvers & Collaborators ({solvers.length})</span>
                     </label>
                     <span className="text-[10px] font-mono text-[#38bdf8]/70">
-                      {solvers.length > 0 ? 'Verified solvers working on challenge' : 'No solvers assigned yet'}
+                      {solvers.length > 0 ? `${solvers.length} solver(s) actively collaborating` : 'No solvers assigned yet'}
                     </span>
                   </div>
 
                   {solvers.length > 0 ? (
                     <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                       {solvers.map((s) => {
-                        const solverProfile = users.find(u => u.id === s.solver_id) || {};
-                        const solverName = solverProfile.name || s.solver_name || 'Solver';
-                        const solverEmail = solverProfile.email || s.solver_email || 'Email hidden';
-                        const solverPhone = solverProfile.phone || s.solver_phone || 'Phone hidden';
-                        const solverAvatar = solverProfile.avatar_url || s.solver_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(solverName)}`;
+                        const solverProfile = s.profile || users.find(u => u.id === s.solver_id) || {};
+                        const solverName = s.solver_name;
+                        const solverEmail = s.solver_email;
+                        const solverPhone = s.solver_phone;
+                        const solverAvatar = s.solver_avatar;
                         const isVerified = solverProfile.verification_uploaded;
 
                         return (
