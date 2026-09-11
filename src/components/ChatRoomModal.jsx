@@ -149,7 +149,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
                 </span>
               </h3>
               <p className="text-xs text-[#B3CFE5]/80 truncate max-w-sm">
-                Project: <span className="text-[#F6FAFD] font-semibold">{postTitle || 'Civic Challenge'}</span>
+                Project: <span className="text-[#F6FAFD] font-semibold">{postTitle || 'Open Challenge'}</span>
               </p>
             </div>
           </div>

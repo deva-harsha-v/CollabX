@@ -119,9 +119,10 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                       type="button"
                       onClick={() => onComplete(post.id)}
                       title="Mark Completed"
-                      className="p-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] font-semibold text-xs transition-colors"
                     >
                       <CheckCircle2 className="w-4 h-4" />
+                      <span>Done</span>
                     </button>
                   )}
                   {onDelete && (
@@ -129,13 +130,15 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                       type="button"
                       onClick={() => onDelete(post.id)}
                       title="Delete Post"
-                      className="p-2 rounded-xl bg-red-950/80 hover:bg-red-900/80 border border-red-500/40 text-red-300 text-xs transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-950/80 hover:bg-red-900/80 border border-red-500/40 text-red-300 font-semibold text-xs transition-colors"
                     >
-                      Delete<Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete</span>
                     </button>
                   )}
                 </div>
               )}
+
 
             </div>
 
