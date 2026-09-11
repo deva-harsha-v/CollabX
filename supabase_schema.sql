@@ -452,3 +452,52 @@ BEGIN
     RETURN v_has_access;
 END;
 $$;
+
+-- ============================================================================
+-- STORAGE BUCKETS CREATION & SECURITY POLICIES
+-- ============================================================================
+
+-- Create the 4 required buckets
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('profile-pictures', 'profile-pictures', true),
+  ('post-media', 'post-media', true),
+  ('verification-documents', 'verification-documents', false), -- PRIVATE GATED BUCKET
+  ('chat-attachments', 'chat-attachments', true)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+-- Storage Policies: profile-pictures
+DROP POLICY IF EXISTS "Public profile-pictures Select" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated profile-pictures Insert" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated profile-pictures Update" ON storage.objects;
+
+CREATE POLICY "Public profile-pictures Select" ON storage.objects FOR SELECT USING (bucket_id = 'profile-pictures');
+CREATE POLICY "Authenticated profile-pictures Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'profile-pictures' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated profile-pictures Update" ON storage.objects FOR UPDATE USING (bucket_id = 'profile-pictures' AND auth.role() = 'authenticated');
+
+-- Storage Policies: post-media
+DROP POLICY IF EXISTS "Public post-media Select" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated post-media Insert" ON storage.objects;
+
+CREATE POLICY "Public post-media Select" ON storage.objects FOR SELECT USING (bucket_id = 'post-media');
+CREATE POLICY "Authenticated post-media Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'post-media' AND auth.role() = 'authenticated');
+
+-- Storage Policies: verification-documents (Private)
+DROP POLICY IF EXISTS "Authenticated verification-documents Insert" ON storage.objects;
+DROP POLICY IF EXISTS "Authorized verification-documents Select" ON storage.objects;
+
+CREATE POLICY "Authenticated verification-documents Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'verification-documents' AND auth.role() = 'authenticated');
+CREATE POLICY "Authorized verification-documents Select" ON storage.objects FOR SELECT USING (
+  bucket_id = 'verification-documents' AND (
+    auth.uid() = owner OR 
+    public.can_access_verification_doc(owner)
+  )
+);
+
+-- Storage Policies: chat-attachments
+DROP POLICY IF EXISTS "Public chat-attachments Select" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated chat-attachments Insert" ON storage.objects;
+
+CREATE POLICY "Public chat-attachments Select" ON storage.objects FOR SELECT USING (bucket_id = 'chat-attachments');
+CREATE POLICY "Authenticated chat-attachments Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'chat-attachments' AND auth.role() = 'authenticated');
+
