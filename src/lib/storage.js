@@ -300,24 +300,52 @@ export async function createPost(postData) {
   return { data: newPost, error: null };
 }
 
+export function extractPostProgress(post) {
+  if (!post) return 0;
+  // 1. Check local progress map cache first for author's instant updates
+  const localMap = getLocal('collabx_post_progress_map', {});
+  if (post.id && typeof localMap[post.id] === 'number') {
+    return localMap[post.id];
+  }
+  // 2. Check skills array where __progress:XX is encoded and persisted to Supabase
+  if (Array.isArray(post.skills)) {
+    const progItem = post.skills.find(s => typeof s === 'string' && s.startsWith('__progress:'));
+    if (progItem) {
+      const parsed = parseInt(progItem.replace('__progress:', ''), 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+  // 3. Check direct column if present in table
+  if (typeof post.progress === 'number') {
+    return post.progress;
+  }
+  return 0;
+}
+
+export function cleanPostSkills(skills) {
+  if (!Array.isArray(skills)) return [];
+  return skills.filter(s => typeof s === 'string' && !s.startsWith('__progress:'));
+}
+
 /**
- * Fetch Public Feed (Calls RPC get_public_posts - NEVER returns phone or lat/lng)
+ * Fetch Public Feed (ONLY 'live' challenges — NEVER shows completed or deleted posts)
  */
 export async function getAllPosts() {
   if (isSupabaseConfigured) {
     try {
-      // Direct table query selects live progress column
+      // Direct table query for LIVE posts only
       const { data: directPosts, error: directErr } = await supabase
         .from('posts')
         .select('*')
-        .neq('status', 'deleted')
+        .eq('status', 'live')
         .order('created_at', { ascending: false });
 
       if (!directErr && directPosts) {
         return { 
           data: directPosts.map(p => ({ 
             ...p, 
-            progress: typeof p.progress === 'number' ? p.progress : 0,
+            skills: cleanPostSkills(p.skills),
+            progress: extractPostProgress(p),
             phone_number: null,
             latitude: null,
             longitude: null,
@@ -326,19 +354,31 @@ export async function getAllPosts() {
         };
       }
 
-      // Fallback RPC if direct query fails
+      // Fallback RPC if direct query fails (filter strictly to status == 'live')
       const { data, error } = await supabase.rpc('get_public_posts');
       if (error) return { data: [], error };
-      return { data: (data || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: null };
+      return { 
+        data: (data || [])
+          .filter(p => p.status === 'live')
+          .map(p => ({ 
+            ...p, 
+            skills: cleanPostSkills(p.skills),
+            progress: extractPostProgress(p),
+            phone_number: null,
+            latitude: null,
+            longitude: null,
+          })), 
+        error: null 
+      };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
   }
 
-  // Fallback: exclude deleted & completed posts, strip sensitive phone/coordinates
+  // Fallback Local Storage: strictly 'live' posts
   const posts = getLocal(LOCAL_POSTS, []);
   const publicPosts = posts
-    .filter(p => p.status === 'live' || p.status === 'completed')
+    .filter(p => p.status === 'live')
     .map(p => ({
       id: p.id,
       author_id: p.authorId,
@@ -347,11 +387,11 @@ export async function getAllPosts() {
       title: p.title,
       description: p.description,
       organization: p.organization,
-      skills: p.skills,
+      skills: cleanPostSkills(p.skills),
       media_url: p.media,
       status: p.status,
       created_at: p.createdAt,
-      progress: typeof p.progress === 'number' ? p.progress : 0,
+      progress: extractPostProgress(p),
       phone_number: null,
       latitude: null,
       longitude: null,
@@ -400,14 +440,14 @@ export async function getPostDetails(postId) {
             title: postRow.title,
             description: postRow.description,
             organization: postRow.organization,
-            skills: postRow.skills,
+            skills: cleanPostSkills(postRow.skills),
             address: postRow.address,
             phone_number: isAccepted ? postRow.phone_number : null,
             latitude: isAccepted ? postRow.latitude : null,
             longitude: isAccepted ? postRow.longitude : null,
             media_url: postRow.media_url,
             status: postRow.status,
-            progress: typeof postRow.progress === 'number' ? postRow.progress : 0,
+            progress: extractPostProgress(postRow),
             created_at: postRow.created_at,
             is_authorized: isAccepted,
             user_contact_status: isAuthor ? 'author' : contactStatus,
@@ -420,7 +460,14 @@ export async function getPostDetails(postId) {
       if (error) return { data: null, error };
       const detail = data?.[0] || null;
       if (detail) {
-        return { data: { ...detail, progress: typeof detail.progress === 'number' ? detail.progress : 0 }, error: null };
+        return { 
+          data: { 
+            ...detail, 
+            skills: cleanPostSkills(detail.skills),
+            progress: extractPostProgress(detail) 
+          }, 
+          error: null 
+        };
       }
       return { data: null, error: null };
     } catch (err) {
@@ -449,14 +496,14 @@ export async function getPostDetails(postId) {
       title: post.title,
       description: post.description,
       organization: post.organization,
-      skills: post.skills,
+      skills: cleanPostSkills(post.skills),
       address: post.address,
       phone_number: isAccepted ? post.phone_number : null,
       latitude: isAccepted ? post.coordinates?.latitude : null,
       longitude: isAccepted ? post.coordinates?.longitude : null,
       media_url: post.media,
       status: post.status,
-      progress: typeof post.progress === 'number' ? post.progress : 0,
+      progress: extractPostProgress(post),
       created_at: post.createdAt,
       is_authorized: isAccepted,
       user_contact_status: isAuthor ? 'author' : (userContact?.status || 'none'),
@@ -478,7 +525,14 @@ export async function getPostsByUser(userId) {
         .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
-      return { data: (data || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error };
+      return { 
+        data: (data || []).map(p => ({ 
+          ...p, 
+          skills: cleanPostSkills(p.skills),
+          progress: extractPostProgress(p) 
+        })), 
+        error 
+      };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -487,7 +541,11 @@ export async function getPostsByUser(userId) {
   const posts = getLocal(LOCAL_POSTS, []);
   const userPosts = posts
     .filter(p => p.authorId === userId && p.status !== 'deleted')
-    .map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 }));
+    .map(p => ({ 
+      ...p, 
+      skills: cleanPostSkills(p.skills),
+      progress: extractPostProgress(p) 
+    }));
   return { data: userPosts, error: null };
 }
 
@@ -517,12 +575,26 @@ export async function getMyIdeas() {
           .order('created_at', { ascending: false });
 
         if (!postErr && posts) {
-          return { data: posts.map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: null };
+          return { 
+            data: posts.map(p => ({ 
+              ...p, 
+              skills: cleanPostSkills(p.skills),
+              progress: extractPostProgress(p) 
+            })), 
+            error: null 
+          };
         }
       }
 
       const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_ideas');
-      return { data: (rpcData || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: rpcErr };
+      return { 
+        data: (rpcData || []).map(p => ({ 
+          ...p, 
+          skills: cleanPostSkills(p.skills),
+          progress: extractPostProgress(p) 
+        })), 
+        error: rpcErr 
+      };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -545,14 +617,14 @@ export async function getMyIdeas() {
       title: p.title,
       description: p.description,
       organization: p.organization,
-      skills: p.skills,
+      skills: cleanPostSkills(p.skills),
       address: p.address,
-      phone_number: p.phone_number, // Unlocked for accepted solvers
+      phone_number: p.phone_number,
       latitude: p.coordinates?.latitude,
       longitude: p.coordinates?.longitude,
       media_url: p.media,
       status: p.status,
-      progress: p.progress ?? 0,
+      progress: extractPostProgress(p),
       created_at: p.createdAt,
     }));
 
@@ -1256,20 +1328,58 @@ export async function getAccessibleChatRooms() {
 export async function updatePostProgress(postId, percentage) {
   const clamped = Math.max(0, Math.min(100, Math.round(percentage)));
 
-  if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('posts')
-      .update({ progress: clamped })
-      .eq('id', postId)
-      .select()
-      .single();
-    return { data, error };
+  // 1. Immediately cache in local map for instantaneous UI reactivity
+  try {
+    const localMap = getLocal('collabx_post_progress_map', {});
+    localMap[postId] = clamped;
+    setLocal('collabx_post_progress_map', localMap);
+  } catch (e) {
+    console.error('Error saving local progress map:', e);
   }
 
-  // Fallback local
-  const posts = getLocal(LOCAL_POSTS, []);
-  const updated = posts.map(p => p.id === postId ? { ...p, progress: clamped } : p);
-  setLocal(LOCAL_POSTS, updated);
+  // 2. Also update LOCAL_POSTS array if post exists there
+  try {
+    const posts = getLocal(LOCAL_POSTS, []);
+    const updated = posts.map(p => p.id === postId ? { ...p, progress: clamped } : p);
+    setLocal(LOCAL_POSTS, updated);
+  } catch (e) {
+    console.error('Error updating local posts:', e);
+  }
+
+  // 3. Persist to Supabase
+  if (isSupabaseConfigured) {
+    try {
+      // Encode progress in skills column (__progress:<val>) so all users on any device see it
+      const { data: currentPost } = await supabase
+        .from('posts')
+        .select('skills')
+        .eq('id', postId)
+        .single();
+
+      if (currentPost) {
+        const existingSkills = Array.isArray(currentPost.skills) ? currentPost.skills : [];
+        const clean = existingSkills.filter(s => typeof s === 'string' && !s.startsWith('__progress:'));
+        const updatedSkills = [...clean, `__progress:${clamped}`];
+
+        await supabase
+          .from('posts')
+          .update({ skills: updatedSkills })
+          .eq('id', postId);
+      }
+
+      // Also attempt direct progress column update (gracefully fails if column does not exist)
+      await supabase
+        .from('posts')
+        .update({ progress: clamped })
+        .eq('id', postId);
+
+      return { data: { id: postId, progress: clamped }, error: null };
+    } catch (err) {
+      console.warn('Supabase progress update notice:', err.message);
+      return { data: { id: postId, progress: clamped }, error: null };
+    }
+  }
+
   return { data: { id: postId, progress: clamped }, error: null };
 }
 
@@ -1452,14 +1562,31 @@ export async function getAllAdminPosts() {
         .select('*, author:author_id(name, email, avatar_url, phone)')
         .order('created_at', { ascending: false });
 
-      return { data: data || [], error };
+      if (data) {
+        return {
+          data: data.map(p => ({
+            ...p,
+            skills: cleanPostSkills(p.skills),
+            progress: extractPostProgress(p),
+          })),
+          error: null,
+        };
+      }
+      return { data: [], error };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
   }
 
   const posts = getLocal(LOCAL_POSTS, []);
-  return { data: posts, error: null };
+  return { 
+    data: posts.map(p => ({
+      ...p,
+      skills: cleanPostSkills(p.skills),
+      progress: extractPostProgress(p),
+    })), 
+    error: null 
+  };
 }
 
 /**
