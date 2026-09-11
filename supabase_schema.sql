@@ -210,7 +210,8 @@ DROP POLICY IF EXISTS "Chat participants can insert messages" ON public.chat_mes
 CREATE POLICY "Chat participants can view their rooms" 
     ON public.chat_rooms FOR SELECT USING (
         public.is_chat_participant(id, auth.uid()) OR
-        auth.uid() IN (SELECT author_id FROM public.posts WHERE id = post_id)
+        auth.uid() IN (SELECT author_id FROM public.posts WHERE id = post_id) OR
+        auth.uid() IN (SELECT solver_id FROM public.contact_requests WHERE post_id = public.chat_rooms.post_id AND status = 'accepted')
     );
 
 CREATE POLICY "Posters can insert chat rooms" 
@@ -218,7 +219,14 @@ CREATE POLICY "Posters can insert chat rooms"
 
 CREATE POLICY "Chat participants can view participant lists" 
     ON public.chat_participants FOR SELECT USING (
-        user_id = auth.uid() OR public.is_chat_participant(chat_room_id, auth.uid())
+        user_id = auth.uid() OR 
+        public.is_chat_participant(chat_room_id, auth.uid()) OR
+        auth.uid() IN (
+            SELECT author_id FROM public.posts p JOIN public.chat_rooms cr ON cr.post_id = p.id WHERE cr.id = chat_room_id
+        ) OR
+        auth.uid() IN (
+            SELECT crq.solver_id FROM public.contact_requests crq JOIN public.chat_rooms cr ON cr.post_id = crq.post_id WHERE cr.id = chat_room_id AND crq.status = 'accepted'
+        )
     );
 
 CREATE POLICY "Users can insert chat participants" 

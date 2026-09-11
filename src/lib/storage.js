@@ -842,10 +842,31 @@ export async function getChatRoomForPost(postId) {
       }
 
       if (room && authData?.user) {
-        // Ensure current authorized user is in chat_participants
-        await supabase.from('chat_participants').upsert([
-          { chat_room_id: room.id, user_id: authData.user.id }
-        ], { onConflict: 'chat_room_id, user_id' });
+        const { data: postDetails } = await getPostDetails(postId);
+        if (postDetails) {
+          const participantsToUpsert = [
+            { chat_room_id: room.id, user_id: postDetails.author_id },
+            { chat_room_id: room.id, user_id: authData.user.id }
+          ];
+
+          // Also fetch all accepted solvers for this post
+          const { data: acceptedReqs } = await supabase
+            .from('contact_requests')
+            .select('solver_id')
+            .eq('post_id', postId)
+            .eq('status', 'accepted');
+
+          if (acceptedReqs && acceptedReqs.length > 0) {
+            acceptedReqs.forEach(req => {
+              participantsToUpsert.push({ chat_room_id: room.id, user_id: req.solver_id });
+            });
+          }
+
+          await supabase.from('chat_participants').upsert(
+            participantsToUpsert,
+            { onConflict: 'chat_room_id, user_id' }
+          );
+        }
       }
 
       return { data: room || null, error: null };
