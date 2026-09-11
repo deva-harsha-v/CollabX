@@ -87,15 +87,22 @@ export async function signUp(userData) {
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
+        options: {
+          data: {
+            name: userData.name.trim(),
+            phone: userData.phone || null,
+            avatar_url: defaultAvatar,
+          }
+        }
       });
 
       if (authErr) return { data: null, error: authErr };
       if (!authData.user) return { data: null, error: { message: 'User registration failed.' } };
 
       const userId = authData.user.id;
-
-      // Handle profile picture upload if provided
       let avatarUrl = defaultAvatar;
+
+      // Handle custom avatar upload if provided and session is authenticated
       if (userData.avatar && userData.avatar.startsWith('data:image')) {
         const fileName = `${userId}_${Date.now()}.png`;
         const blob = await (await fetch(userData.avatar)).blob();
@@ -108,20 +115,25 @@ export async function signUp(userData) {
             .from('profile-pictures')
             .getPublicUrl(fileName);
           avatarUrl = publicUrlData.publicUrl;
+
+          // Update profile row with custom avatar URL
+          await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
         }
       }
 
-      // Insert profile record
-      const { error: profErr } = await supabase.from('profiles').insert([{
+      // Upsert profile record as fallback (trigger already creates bare profile row server-side)
+      const { error: profErr } = await supabase.from('profiles').upsert([{
         id: userId,
         name: userData.name.trim(),
         email: userData.email.toLowerCase().trim(),
         phone: userData.phone || null,
         avatar_url: avatarUrl,
         verification_uploaded: false,
-      }]);
+      }], { onConflict: 'id' });
 
-      if (profErr) return { data: null, error: profErr };
+      if (profErr) {
+        console.warn('Profile upsert notice (handled by DB trigger):', profErr.message);
+      }
 
       const newUser = {
         id: userId,
