@@ -835,6 +835,12 @@ const AdminPortalPage = () => {
                 <span className="text-[#38bdf8]/70">Status:</span>
                 <span className="font-bold uppercase text-red-400">{selectedPost.status}</span>
               </div>
+              {selectedPost.status === 'deleted' && selectedPost.delete_reason && (
+                <div className="flex justify-between flex-wrap gap-2 pt-1 border-t border-red-500/30">
+                  <span className="text-red-400 font-bold">Admin Removal Reason:</span>
+                  <span className="text-red-200 font-medium">{selectedPost.delete_reason}</span>
+                </div>
+              )}
             </div>
 
             {/* Description */}

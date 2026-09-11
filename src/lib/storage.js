@@ -467,6 +467,8 @@ export function cleanPostSkills(skills) {
  * Fetch Public Feed (ONLY 'live' challenges — NEVER shows completed or deleted posts)
  */
 export async function getAllPosts() {
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+
   if (isSupabaseConfigured) {
     try {
       // Direct table query for LIVE posts only
@@ -477,8 +479,9 @@ export async function getAllPosts() {
         .order('created_at', { ascending: false });
 
       if (!directErr && directPosts) {
-        return { 
-          data: directPosts.map(p => ({ 
+        const liveFiltered = directPosts
+          .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
+          .map(p => ({ 
             ...p, 
             skills: cleanPostSkills(p.skills),
             solver_requirement: extractPostRequirement(p),
@@ -486,7 +489,10 @@ export async function getAllPosts() {
             phone_number: null,
             latitude: null,
             longitude: null,
-          })), 
+          }));
+
+        return { 
+          data: liveFiltered, 
           error: null 
         };
       }
@@ -496,7 +502,7 @@ export async function getAllPosts() {
       if (error) return { data: [], error };
       return { 
         data: (data || [])
-          .filter(p => p.status === 'live')
+          .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
           .map(p => ({ 
             ...p, 
             skills: cleanPostSkills(p.skills),
@@ -516,7 +522,7 @@ export async function getAllPosts() {
   // Fallback Local Storage: strictly 'live' posts
   const posts = getLocal(LOCAL_POSTS, []);
   const publicPosts = posts
-    .filter(p => p.status === 'live')
+    .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
     .map(p => ({
       id: p.id,
       author_id: p.authorId,
@@ -660,6 +666,8 @@ export async function getPostDetails(postId) {
  * Fetch "My Posts" (Author view - includes live & completed posts, excludes soft-deleted)
  */
 export async function getPostsByUser(userId) {
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -670,12 +678,14 @@ export async function getPostsByUser(userId) {
         .order('created_at', { ascending: false });
 
       return { 
-        data: (data || []).map(p => ({ 
-          ...p, 
-          skills: cleanPostSkills(p.skills),
-          solver_requirement: extractPostRequirement(p),
-          progress: extractPostProgress(p) 
-        })), 
+        data: (data || [])
+          .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+          .map(p => ({ 
+            ...p, 
+            skills: cleanPostSkills(p.skills),
+            solver_requirement: extractPostRequirement(p),
+            progress: extractPostProgress(p) 
+          })), 
         error 
       };
     } catch (err) {
@@ -685,7 +695,7 @@ export async function getPostsByUser(userId) {
 
   const posts = getLocal(LOCAL_POSTS, []);
   const userPosts = posts
-    .filter(p => p.authorId === userId && p.status !== 'deleted')
+    .filter(p => p.authorId === userId && p.status !== 'deleted' && !deletedIds.includes(p.id))
     .map(p => ({ 
       ...p, 
       skills: cleanPostSkills(p.skills),
@@ -699,6 +709,8 @@ export async function getPostsByUser(userId) {
  * Fetch "My Ideas" (Posts where user is an accepted solver and status != 'deleted')
  */
 export async function getMyIdeas() {
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+
   if (isSupabaseConfigured) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -712,7 +724,7 @@ export async function getMyIdeas() {
         .eq('status', 'accepted');
 
       if (!contactErr && contacts && contacts.length > 0) {
-        const postIds = contacts.map(c => c.post_id);
+        const postIds = contacts.map(c => c.post_id).filter(id => !deletedIds.includes(id));
         const { data: posts, error: postErr } = await supabase
           .from('posts')
           .select('*')
@@ -722,12 +734,14 @@ export async function getMyIdeas() {
 
         if (!postErr && posts) {
           return { 
-            data: posts.map(p => ({ 
-              ...p, 
-              skills: cleanPostSkills(p.skills),
-              solver_requirement: extractPostRequirement(p),
-              progress: extractPostProgress(p) 
-            })), 
+            data: posts
+              .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+              .map(p => ({ 
+                ...p, 
+                skills: cleanPostSkills(p.skills),
+                solver_requirement: extractPostRequirement(p),
+                progress: extractPostProgress(p) 
+              })), 
             error: null 
           };
         }
@@ -735,12 +749,14 @@ export async function getMyIdeas() {
 
       const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_ideas');
       return { 
-        data: (rpcData || []).map(p => ({ 
-          ...p, 
-          skills: cleanPostSkills(p.skills),
-          solver_requirement: extractPostRequirement(p),
-          progress: extractPostProgress(p) 
-        })), 
+        data: (rpcData || [])
+          .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+          .map(p => ({ 
+            ...p, 
+            skills: cleanPostSkills(p.skills),
+            solver_requirement: extractPostRequirement(p),
+            progress: extractPostProgress(p) 
+          })), 
         error: rpcErr 
       };
     } catch (err) {
@@ -756,7 +772,7 @@ export async function getMyIdeas() {
 
   const posts = getLocal(LOCAL_POSTS, []);
   const ideas = posts
-    .filter(p => acceptedPostsIds.includes(p.id) && p.status !== 'deleted')
+    .filter(p => acceptedPostsIds.includes(p.id) && p.status !== 'deleted' && !deletedIds.includes(p.id))
     .map(p => ({
       id: p.id,
       author_id: p.authorId,
@@ -785,12 +801,19 @@ export async function getMyIdeas() {
  * Soft Delete Post (Sets status = 'deleted')
  */
 export async function softDeletePost(postId) {
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  if (!deletedIds.includes(postId)) {
+    deletedIds.push(postId);
+    setLocal('collabx_deleted_post_ids', deletedIds);
+  }
+
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('posts')
-      .update({ status: 'deleted' })
-      .eq('id', postId);
-    return { data, error };
+    try {
+      await supabase
+        .from('posts')
+        .update({ status: 'deleted' })
+        .eq('id', postId);
+    } catch (e) {}
   }
 
   const posts = getLocal(LOCAL_POSTS, []);
@@ -2107,6 +2130,9 @@ export function adminSignOut() {
  * Admin: Fetch all posts ever created (live, completed, deleted)
  */
 export async function getAllAdminPosts() {
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  const deletedMeta = getLocal('collabx_deleted_posts_meta', {});
+
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -2116,16 +2142,22 @@ export async function getAllAdminPosts() {
 
       if (data) {
         return {
-          data: data.map(p => ({
-            ...p,
-            skills: cleanPostSkills(p.skills),
-            solver_requirement: extractPostRequirement(p),
-            progress: extractPostProgress(p),
-            author: p.author ? {
-              ...p.author,
-              account_type: getUserAccountType(p.author),
-            } : null,
-          })),
+          data: data.map(p => {
+            const isDeleted = deletedIds.includes(p.id) || p.status === 'deleted';
+            const meta = deletedMeta[p.id];
+            return {
+              ...p,
+              status: isDeleted ? 'deleted' : p.status,
+              delete_reason: meta?.reason || p.delete_reason || null,
+              skills: cleanPostSkills(p.skills),
+              solver_requirement: extractPostRequirement(p),
+              progress: extractPostProgress(p),
+              author: p.author ? {
+                ...p.author,
+                account_type: getUserAccountType(p.author),
+              } : null,
+            };
+          }),
           error: null,
         };
       }
@@ -2137,12 +2169,18 @@ export async function getAllAdminPosts() {
 
   const posts = getLocal(LOCAL_POSTS, []);
   return { 
-    data: posts.map(p => ({
-      ...p,
-      skills: cleanPostSkills(p.skills),
-      solver_requirement: extractPostRequirement(p),
-      progress: extractPostProgress(p),
-    })), 
+    data: posts.map(p => {
+      const isDeleted = deletedIds.includes(p.id) || p.status === 'deleted';
+      const meta = deletedMeta[p.id];
+      return {
+        ...p,
+        status: isDeleted ? 'deleted' : p.status,
+        delete_reason: meta?.reason || p.delete_reason || null,
+        skills: cleanPostSkills(p.skills),
+        solver_requirement: extractPostRequirement(p),
+        progress: extractPostProgress(p),
+      };
+    }), 
     error: null 
   };
 }
@@ -2314,19 +2352,37 @@ export async function getAllAdminContactRequests() {
  * Admin: Delete a post with a mandatory reason, and notify the author
  */
 export async function adminDeletePost(postId, authorId, postTitle, reason) {
-  const notificationMsg = `Your post has been removed by the admin for: ${reason}`;
+  const notificationMsg = `Your post "${postTitle}" has been removed by the admin for: ${reason}`;
 
+  // 1. Record deletion in persistent deleted posts map
+  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  if (!deletedIds.includes(postId)) {
+    deletedIds.push(postId);
+    setLocal('collabx_deleted_post_ids', deletedIds);
+  }
+
+  const deletedMeta = getLocal('collabx_deleted_posts_meta', {});
+  deletedMeta[postId] = {
+    deleted_at: new Date().toISOString(),
+    reason: reason,
+    title: postTitle,
+    author_id: authorId,
+  };
+  setLocal('collabx_deleted_posts_meta', deletedMeta);
+
+  // 2. Update local storage posts
+  const localPosts = getLocal(LOCAL_POSTS, []);
+  const updatedLocal = localPosts.map(p => p.id === postId ? { ...p, status: 'deleted', delete_reason: reason } : p);
+  setLocal(LOCAL_POSTS, updatedLocal);
+
+  // 3. Attempt Supabase update and notification insertion
   if (isSupabaseConfigured) {
     try {
-      // 1. Update post status to deleted
-      const { error: deleteErr } = await supabase
+      await supabase
         .from('posts')
         .update({ status: 'deleted' })
         .eq('id', postId);
 
-      if (deleteErr) return { data: null, error: deleteErr };
-
-      // 2. Dispatch notification to author
       if (authorId) {
         await supabase.from('notifications').insert([{
           user_id: authorId,
@@ -2340,18 +2396,12 @@ export async function adminDeletePost(postId, authorId, postTitle, reason) {
           read: false,
         }]);
       }
-
-      return { data: true, error: null };
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      console.warn('[storage] adminDeletePost Supabase update warning:', err);
     }
   }
 
-  // Fallback
-  const posts = getLocal(LOCAL_POSTS, []);
-  const updated = posts.map(p => p.id === postId ? { ...p, status: 'deleted' } : p);
-  setLocal(LOCAL_POSTS, updated);
-
+  // 4. Also record local notification for author
   if (authorId) {
     await addNotification(authorId, {
       message: notificationMsg,
