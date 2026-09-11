@@ -2780,8 +2780,8 @@ const LOCAL_ADMIN_SESSION = 'collabx_admin_session';
 
 export async function adminSignIn(email, password) {
   if (
-    email.toLowerCase().trim() === ADMIN_CREDENTIALS.email.toLowerCase() &&
-    password === ADMIN_CREDENTIALS.password
+    email?.toLowerCase().trim() === ADMIN_CREDENTIALS.email.toLowerCase() &&
+    password?.trim() === ADMIN_CREDENTIALS.password
   ) {
     const adminSession = {
       email: ADMIN_CREDENTIALS.email,

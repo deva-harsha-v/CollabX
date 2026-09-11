@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound, Phone, Building2, UserCheck, FileCheck, CheckCircle2, RotateCcw } from 'lucide-react';
-import { signUp, signIn, resendVerificationEmail, isValidOrgEmail, signUpEmergency } from '../lib/storage';
+import { signUp, signIn, resendVerificationEmail, isValidOrgEmail, signUpEmergency, adminSignIn } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 import LogoIcon from '../components/LogoIcon';
@@ -46,16 +46,21 @@ const AuthPage = () => {
     e.preventDefault();
     setAdminError('');
     setIsAdminSubmitting(true);
-    const { data, error } = await adminSignIn(adminEmail, adminPassword);
-    setIsAdminSubmitting(false);
+    try {
+      const { data, error } = await adminSignIn(adminEmail, adminPassword);
+      if (error) {
+        setAdminError(error.message || 'Invalid Admin Credentials.');
+        return;
+      }
 
-    if (error) {
-      setAdminError(error.message);
-      return;
-    }
-
-    if (data) {
-      navigate('/admin');
+      if (data) {
+        navigate('/admin');
+      }
+    } catch (err) {
+      console.error('Admin login error:', err);
+      setAdminError(err?.message || 'An unexpected error occurred during admin authentication.');
+    } finally {
+      setIsAdminSubmitting(false);
     }
   };
 
