@@ -1086,21 +1086,33 @@ export async function getChatRoomForPost(postId) {
 }
 
 export async function getChatMessages(roomId) {
+  if (!roomId) return { data: [], error: null };
+  const cleanId = roomId.replace('room_', '');
+
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*, profiles:sender_id(name, avatar_url)')
-      .eq('chat_room_id', roomId)
-      .order('created_at', { ascending: true }); // Newest last for chat history
-    return { data: data || [], error };
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*, profiles:sender_id(name, avatar_url, email)')
+        .or(`chat_room_id.eq.${roomId},chat_room_id.eq.${cleanId}`)
+        .order('created_at', { ascending: true });
+      if (data && data.length > 0) {
+        return { data, error: null };
+      }
+    } catch (e) {
+      console.warn('[storage] getChatMessages supabase query note:', e);
+    }
   }
 
   const msgs = getLocal(LOCAL_CHAT_MSGS, []);
-  const roomMsgs = msgs.filter(m => m.chat_room_id === roomId);
+  const roomMsgs = msgs.filter(m => m.chat_room_id === roomId || m.chat_room_id === cleanId);
   return { data: roomMsgs, error: null };
 }
 
 export async function sendChatMessage(roomId, content, attachmentFile) {
+  if (!roomId) return { data: null, error: { message: 'Invalid room' } };
+  const cleanId = roomId.replace('room_', '');
+
   if (isSupabaseConfigured) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -1124,10 +1136,32 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         }
       }
 
+      // Ensure room exists in chat_rooms table
+      let targetRoomId = roomId;
+      try {
+        const { data: existingRoom } = await supabase
+          .from('chat_rooms')
+          .select('id')
+          .or(`id.eq.${roomId},post_id.eq.${cleanId}`)
+          .maybeSingle();
+
+        if (existingRoom) {
+          targetRoomId = existingRoom.id;
+        } else {
+          // Attempt creating room row
+          const { data: createdRoom } = await supabase
+            .from('chat_rooms')
+            .insert([{ id: cleanId, post_id: cleanId }])
+            .select()
+            .maybeSingle();
+          if (createdRoom) targetRoomId = createdRoom.id;
+        }
+      } catch (e) {}
+
       const { data: newMsg, error: msgErr } = await supabase
         .from('chat_messages')
         .insert([{
-          chat_room_id: roomId,
+          chat_room_id: targetRoomId,
           sender_id: authData.user.id,
           content: content ? content.trim() : null,
           attachment_url: attachmentUrl,
@@ -1135,8 +1169,6 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         }])
         .select('*, profiles:sender_id(name, avatar_url)')
         .single();
-
-      if (msgErr) return { data: null, error: msgErr };
 
       // Dispatch in-app notifications to all other participants in this chat room
       try {
@@ -1150,7 +1182,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         const { data: roomData } = await supabase
           .from('chat_rooms')
           .select('post_id, posts:post_id(title, author_id)')
-          .eq('id', roomId)
+          .or(`id.eq.${targetRoomId},post_id.eq.${cleanId}`)
           .maybeSingle();
         const postTitle = roomData?.posts?.title || 'Challenge';
         const postAuthorId = roomData?.posts?.author_id;
@@ -1161,7 +1193,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         const { data: participants } = await supabase
           .from('chat_participants')
           .select('user_id')
-          .eq('chat_room_id', roomId);
+          .eq('chat_room_id', targetRoomId);
         if (participants) {
           participants.forEach(p => recipientUserIds.add(p.user_id));
         }
@@ -1172,11 +1204,12 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         }
 
         // 3. Add all accepted solvers for this post
-        if (roomData?.post_id) {
+        const activePostId = roomData?.post_id || cleanId;
+        if (activePostId) {
           const { data: acceptedSolvers } = await supabase
             .from('contact_requests')
             .select('solver_id')
-            .eq('post_id', roomData.post_id)
+            .eq('post_id', activePostId)
             .eq('status', 'accepted');
           if (acceptedSolvers) {
             acceptedSolvers.forEach(s => recipientUserIds.add(s.solver_id));
@@ -1192,9 +1225,9 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
             type: 'chat_message',
             message: `New message from ${senderName} in "${postTitle}"`,
             payload: {
-              room_id: roomId,
-              roomId: roomId,
-              post_id: roomData?.post_id,
+              room_id: targetRoomId,
+              roomId: targetRoomId,
+              post_id: activePostId,
               post_title: postTitle,
               sender_id: authData.user.id,
               sender_name: senderName,
@@ -1209,9 +1242,9 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         console.warn('[storage] Failed to dispatch chat notification:', notifErr);
       }
 
-      return { data: newMsg, error: null };
+      if (newMsg) return { data: newMsg, error: null };
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      console.warn('[storage] sendChatMessage supabase fallback triggered:', err);
     }
   }
 
@@ -1235,9 +1268,9 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
   // Local notifications dispatch
   try {
     const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
-    const room = rooms.find(r => r.id === roomId);
+    const room = rooms.find(r => r.id === roomId || r.post_id === cleanId);
     const posts = getLocal(LOCAL_POSTS, []);
-    const post = room ? posts.find(p => p.id === room.post_id) : null;
+    const post = room ? posts.find(p => p.id === room.post_id) : posts.find(p => p.id === cleanId);
     
     const recipientIds = new Set();
     if (room && room.participants) {
@@ -1247,8 +1280,9 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
     if (post && post.authorId) recipientIds.add(post.authorId);
     
     const reqs = getLocal('collabx_requests', []);
-    if (room && room.post_id) {
-      reqs.filter(r => r.post_id === room.post_id && r.status === 'accepted').forEach(r => recipientIds.add(r.solver_id));
+    const postIdToCheck = post?.id || cleanId;
+    if (postIdToCheck) {
+      reqs.filter(r => r.post_id === postIdToCheck && r.status === 'accepted').forEach(r => recipientIds.add(r.solver_id));
     }
     recipientIds.delete(session.id);
 
@@ -1262,7 +1296,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         payload: {
           room_id: roomId,
           roomId: roomId,
-          post_id: room?.post_id,
+          post_id: postIdToCheck,
           post_title: post?.title,
           sender_id: session.id,
           sender_name: session.name,
@@ -1286,6 +1320,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 export async function markChatRoomNotificationsRead(roomId, userId) {
   if (isSupabaseConfigured) {
     try {
+      const cleanId = roomId ? roomId.replace('room_', '') : '';
       const { data: authData } = await supabase.auth.getUser();
       const uid = userId || authData?.user?.id;
       if (!uid) return { data: null, error: null };
@@ -1299,7 +1334,7 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
 
       if (userNotifs && userNotifs.length > 0) {
         const matchingIds = userNotifs
-          .filter(n => n.payload?.room_id === roomId || n.payload?.roomId === roomId)
+          .filter(n => n.payload?.room_id === roomId || n.payload?.roomId === roomId || n.payload?.room_id === cleanId || n.payload?.post_id === cleanId)
           .map(n => n.id);
 
         if (matchingIds.length > 0) {
@@ -1316,8 +1351,9 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
   }
 
   const notifs = getLocal(LOCAL_NOTIFS, []);
+  const cleanId = roomId ? roomId.replace('room_', '') : '';
   const updated = notifs.map(n => {
-    if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId)) {
+    if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId || n.payload?.room_id === cleanId || n.payload?.post_id === cleanId)) {
       return { ...n, read: true };
     }
     return n;
@@ -1328,7 +1364,7 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
 
 /**
  * Get all chat rooms the current user is a participant in
- * Returns [{ room_id, post_id, post_title, last_message_at }]
+ * Returns [{ room_id, post_id, post_title, created_at }]
  */
 export async function getAccessibleChatRooms() {
   if (isSupabaseConfigured) {
@@ -1336,56 +1372,137 @@ export async function getAccessibleChatRooms() {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) return { data: [], error: null };
 
-      // Get participant rows for this user
-      const { data: participantRows, error: partErr } = await supabase
-        .from('chat_participants')
-        .select('chat_room_id')
-        .eq('user_id', authData.user.id);
+      const accessibleRoomsMap = new Map();
 
-      if (partErr || !participantRows || participantRows.length === 0) {
-        return { data: [], error: partErr || null };
+      // 1. Direct participant rows
+      try {
+        const { data: participantRows } = await supabase
+          .from('chat_participants')
+          .select('chat_room_id, chat_rooms(id, post_id, created_at, posts:post_id(title))')
+          .eq('user_id', authData.user.id);
+
+        if (participantRows) {
+          participantRows.forEach(pr => {
+            if (pr.chat_rooms) {
+              accessibleRoomsMap.set(pr.chat_rooms.id, {
+                room_id: pr.chat_rooms.id,
+                post_id: pr.chat_rooms.post_id,
+                post_title: pr.chat_rooms.posts?.title || 'Challenge Discussion',
+                created_at: pr.chat_rooms.created_at,
+              });
+            }
+          });
+        }
+      } catch (e) {}
+
+      // 2. Posts authored by user that have accepted solvers
+      try {
+        const { data: myPosts } = await supabase
+          .from('posts')
+          .select('id, title, created_at')
+          .eq('author_id', authData.user.id);
+
+        if (myPosts && myPosts.length > 0) {
+          const myPostIds = myPosts.map(p => p.id);
+          const { data: acceptedReqs } = await supabase
+            .from('contact_requests')
+            .select('post_id, solver_id')
+            .in('post_id', myPostIds)
+            .eq('status', 'accepted');
+
+          if (acceptedReqs && acceptedReqs.length > 0) {
+            const activePostIds = new Set(acceptedReqs.map(r => r.post_id));
+            myPosts.filter(p => activePostIds.has(p.id)).forEach(p => {
+              if (!Array.from(accessibleRoomsMap.values()).some(r => r.post_id === p.id)) {
+                accessibleRoomsMap.set(p.id, {
+                  room_id: p.id,
+                  post_id: p.id,
+                  post_title: p.title,
+                  created_at: p.created_at,
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      // 3. Solvers with accepted contact requests
+      try {
+        const { data: myAcceptedReqs } = await supabase
+          .from('contact_requests')
+          .select('post_id, posts:post_id(id, title, created_at)')
+          .eq('solver_id', authData.user.id)
+          .eq('status', 'accepted');
+
+        if (myAcceptedReqs) {
+          myAcceptedReqs.forEach(req => {
+            if (req.posts && !Array.from(accessibleRoomsMap.values()).some(r => r.post_id === req.posts.id)) {
+              accessibleRoomsMap.set(req.posts.id, {
+                room_id: req.posts.id,
+                post_id: req.posts.id,
+                post_title: req.posts.title,
+                created_at: req.posts.created_at,
+              });
+            }
+          });
+        }
+      } catch (e) {}
+
+      const result = Array.from(accessibleRoomsMap.values());
+      if (result.length > 0) {
+        return { data: result, error: null };
       }
-
-      const roomIds = participantRows.map(r => r.chat_room_id);
-
-      // Fetch room details + post title
-      const { data: rooms, error: roomErr } = await supabase
-        .from('chat_rooms')
-        .select('id, post_id, created_at, posts:post_id(title)')
-        .in('id', roomIds)
-        .order('created_at', { ascending: false });
-
-      if (roomErr) return { data: [], error: roomErr };
-
-      const result = (rooms || []).map(r => ({
-        room_id: r.id,
-        post_id: r.post_id,
-        post_title: r.posts?.title || 'Untitled Challenge',
-        created_at: r.created_at,
-      }));
-
-      return { data: result, error: null };
     } catch (err) {
-      return { data: [], error: { message: err.message } };
+      console.warn('[storage] getAccessibleChatRooms error:', err);
     }
   }
 
-  // Fallback local
+  // Fallback local storage
   const session = getLocal(LOCAL_SESSION, {});
   const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
   const posts = getLocal(LOCAL_POSTS, []);
-  const accessible = rooms
-    .filter(r => r.participants?.includes(session.id))
-    .map(r => {
-      const p = posts.find(p => p.id === r.post_id);
-      return {
-        room_id: r.id,
-        post_id: r.post_id,
-        post_title: p?.title || 'Untitled Challenge',
-        created_at: r.created_at || new Date().toISOString(),
-      };
+  const contacts = getLocal(LOCAL_CONTACTS, []);
+
+  const accessibleMap = new Map();
+
+  rooms.filter(r => r.participants?.includes(session.id)).forEach(r => {
+    const p = posts.find(post => post.id === r.post_id);
+    accessibleMap.set(r.id, {
+      room_id: r.id,
+      post_id: r.post_id,
+      post_title: p?.title || 'Untitled Challenge',
+      created_at: r.created_at || new Date().toISOString(),
     });
-  return { data: accessible, error: null };
+  });
+
+  // Also include accepted requests for local session
+  contacts.filter(c => c.solver_id === session.id && c.status === 'accepted').forEach(c => {
+    const p = posts.find(post => post.id === c.post_id);
+    if (p) {
+      accessibleMap.set(p.id, {
+        room_id: `room_${p.id}`,
+        post_id: p.id,
+        post_title: p.title,
+        created_at: p.created_at || new Date().toISOString(),
+      });
+    }
+  });
+
+  // Also include authored posts with accepted requests
+  const authoredPostIds = posts.filter(p => p.author_id === session.id || p.authorId === session.id).map(p => p.id);
+  contacts.filter(c => authoredPostIds.includes(c.post_id) && c.status === 'accepted').forEach(c => {
+    const p = posts.find(post => post.id === c.post_id);
+    if (p) {
+      accessibleMap.set(p.id, {
+        room_id: `room_${p.id}`,
+        post_id: p.id,
+        post_title: p.title,
+        created_at: p.created_at || new Date().toISOString(),
+      });
+    }
+  });
+
+  return { data: Array.from(accessibleMap.values()), error: null };
 }
 
 /**
@@ -1718,49 +1835,112 @@ export async function getAllAdminUsers() {
  * Admin: Fetch all chat rooms with message counts
  */
 export async function getAllAdminChatRooms() {
+  let combinedRooms = [];
   if (isSupabaseConfigured) {
     try {
-      const { data: rooms, error: roomErr } = await supabase
+      // 1. Try querying chat_rooms directly
+      const { data: directRooms } = await supabase
         .from('chat_rooms')
         .select('*, posts:post_id(id, title, author_id, status)')
         .order('created_at', { ascending: false });
 
-      if (roomErr) return { data: [], error: roomErr };
+      if (directRooms && directRooms.length > 0) {
+        combinedRooms = directRooms;
+      } else {
+        // 2. Derive rooms from posts that have accepted contact requests or exist in the system
+        const { data: allPosts } = await supabase
+          .from('posts')
+          .select('id, title, author_id, status, created_at');
 
-      // Fetch participants and message counts for each room
-      const results = await Promise.all((rooms || []).map(async (r) => {
-        const { count: msgCount } = await supabase
-          .from('chat_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('chat_room_id', r.id);
+        const { data: acceptedContacts } = await supabase
+          .from('contact_requests')
+          .select('post_id, solver_id, status')
+          .eq('status', 'accepted');
 
-        const { data: participants } = await supabase
-          .from('chat_participants')
-          .select('user_id, profiles:user_id(name, email, avatar_url)')
-          .eq('chat_room_id', r.id);
+        if (allPosts && allPosts.length > 0) {
+          const postIdsWithChat = new Set();
+          if (acceptedContacts) {
+            acceptedContacts.forEach(c => postIdsWithChat.add(c.post_id));
+          }
+          
+          allPosts.forEach(p => {
+            if (postIdsWithChat.has(p.id) || p.status === 'completed' || p.status === 'live') {
+              combinedRooms.push({
+                id: p.id,
+                post_id: p.id,
+                created_at: p.created_at,
+                posts: { id: p.id, title: p.title, author_id: p.author_id, status: p.status }
+              });
+            }
+          });
+        }
+      }
+
+      // Populate counts and participants
+      const results = await Promise.all(combinedRooms.map(async (r) => {
+        let msgCount = 0;
+        try {
+          const { count } = await supabase
+            .from('chat_messages')
+            .select('*', { count: 'exact', head: true })
+            .or(`chat_room_id.eq.${r.id},chat_room_id.eq.${r.post_id}`);
+          msgCount = count || 0;
+        } catch (e) {}
 
         return {
           ...r,
-          message_count: msgCount || 0,
-          participants: participants || [],
+          id: r.id,
+          post_title: r.posts?.title || 'Challenge Discussion',
+          message_count: msgCount,
+          created_at: r.created_at || new Date().toISOString(),
         };
       }));
 
-      return { data: results, error: null };
+      if (results.length > 0) return { data: results, error: null };
     } catch (err) {
-      return { data: [], error: { message: err.message } };
+      console.warn('[storage] getAllAdminChatRooms supabase error:', err);
     }
   }
 
+  // Fallback local storage
   const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
   const msgs = getLocal(LOCAL_CHAT_MSGS, []);
   const posts = getLocal(LOCAL_POSTS, []);
+  const contacts = getLocal(LOCAL_CONTACTS, []);
 
-  const results = rooms.map(r => ({
-    ...r,
-    posts: posts.find(p => p.id === r.post_id),
-    message_count: msgs.filter(m => m.chat_room_id === r.id).length,
-  }));
+  const allRoomIds = new Set(rooms.map(r => r.post_id));
+  contacts.filter(c => c.status === 'accepted').forEach(c => {
+    if (!allRoomIds.has(c.post_id)) {
+      rooms.push({
+        id: `room_${c.post_id}`,
+        post_id: c.post_id,
+        created_at: c.createdAt || new Date().toISOString()
+      });
+      allRoomIds.add(c.post_id);
+    }
+  });
+
+  // Also include posts
+  posts.forEach(p => {
+    if (!allRoomIds.has(p.id)) {
+      rooms.push({
+        id: `room_${p.id}`,
+        post_id: p.id,
+        created_at: p.created_at || p.createdAt || new Date().toISOString()
+      });
+      allRoomIds.add(p.id);
+    }
+  });
+
+  const results = rooms.map(r => {
+    const p = posts.find(post => post.id === r.post_id);
+    return {
+      ...r,
+      post_title: p?.title || 'Challenge Discussion',
+      posts: p,
+      message_count: msgs.filter(m => m.chat_room_id === r.id || m.chat_room_id === r.post_id || m.chat_room_id === r.id.replace('room_', '')).length,
+    };
+  });
 
   return { data: results, error: null };
 }

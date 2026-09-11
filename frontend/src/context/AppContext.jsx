@@ -65,15 +65,22 @@ export const AppProvider = ({ children }) => {
     if (currentUser?.id) {
       refreshNotifications(currentUser.id);
 
-      // Polling interval every 4 seconds for notifications & chat alerts
+      // Ultra-responsive polling every 2 seconds
       const interval = setInterval(() => {
         refreshNotifications(currentUser.id);
-      }, 4000);
+      }, 2000);
 
-      // Supabase Realtime subscription on notifications table (both INSERT and UPDATE)
-      let channel;
+      const handleStorageUpdate = () => {
+        refreshNotifications(currentUser.id);
+      };
+      window.addEventListener('storage', handleStorageUpdate);
+      window.addEventListener('collabx_notif_update', handleStorageUpdate);
+
+      // Supabase Realtime subscriptions on notifications & chat_messages tables
+      let notifChannel;
+      let msgChannel;
       if (isSupabaseConfigured) {
-        channel = supabase
+        notifChannel = supabase
           .channel(`user_notifs_${currentUser.id}`)
           .on(
             'postgres_changes',
@@ -104,11 +111,30 @@ export const AppProvider = ({ children }) => {
             }
           )
           .subscribe();
+
+        msgChannel = supabase
+          .channel(`user_chat_events_${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
+            },
+            () => {
+              // Immediately refresh notifications on any incoming chat message
+              refreshNotifications(currentUser.id);
+            }
+          )
+          .subscribe();
       }
 
       return () => {
         clearInterval(interval);
-        if (channel) supabase.removeChannel(channel);
+        window.removeEventListener('storage', handleStorageUpdate);
+        window.removeEventListener('collabx_notif_update', handleStorageUpdate);
+        if (notifChannel) supabase.removeChannel(notifChannel);
+        if (msgChannel) supabase.removeChannel(msgChannel);
       };
     } else {
       setNotifications([]);
