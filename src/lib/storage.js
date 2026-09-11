@@ -231,6 +231,30 @@ export async function getCurrentUser() {
 }
 
 /**
+ * Auth: Resend Verification / Confirmation Email
+ */
+export async function resendVerificationEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return { data: null, error: { message: 'A valid email address is required.' } };
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+      });
+      if (error) return { data: null, error };
+      return { data: true, error: null };
+    } catch (err) {
+      return { data: null, error: { message: err.message } };
+    }
+  }
+
+  return { data: true, error: null };
+}
+
+/**
  * Auth: Sign Up
  */
 export async function signUp(userData) {
@@ -243,12 +267,12 @@ export async function signUp(userData) {
   if (isSupabaseConfigured) {
     try {
       const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: userData.email,
+        email: userData.email.trim().toLowerCase(),
         password: userData.password,
         options: {
           data: {
             name: userData.name.trim(),
-            phone: userData.phone || null,
+            phone: userData.phone ? userData.phone.trim() : null,
             avatar_url: defaultAvatar,
             account_type: accountType,
           }
@@ -278,7 +302,7 @@ export async function signUp(userData) {
             .upload(docFileName, blob);
           if (upDoc) docUrl = docFileName;
         } catch (e) {
-          console.warn('Doc upload fallback notice:', e);
+          console.warn('Doc upload notice:', e);
         }
       }
 
@@ -299,39 +323,46 @@ export async function signUp(userData) {
             await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
           }
         } catch (e) {
-          console.warn('Avatar upload fallback notice:', e);
+          console.warn('Avatar upload notice:', e);
         }
       }
 
       // Upsert profile record
-      const { error: profErr } = await supabase.from('profiles').upsert([{
-        id: userId,
-        name: userData.name.trim(),
-        email: userData.email.toLowerCase().trim(),
-        phone: userData.phone || null,
-        avatar_url: avatarUrl,
-        skills: skills.length > 0 ? skills : null,
-        verification_uploaded: isVerified,
-        verification_document_url: docUrl,
-      }], { onConflict: 'id' });
-
-      if (profErr) {
-        console.warn('Profile upsert notice (handled by DB trigger):', profErr.message);
+      try {
+        await supabase.from('profiles').upsert([{
+          id: userId,
+          name: userData.name.trim(),
+          email: userData.email.toLowerCase().trim(),
+          phone: userData.phone ? userData.phone.trim() : null,
+          avatar_url: avatarUrl,
+          skills: skills.length > 0 ? skills : null,
+          verification_uploaded: isVerified,
+          verification_document_url: docUrl,
+        }], { onConflict: 'id' });
+      } catch (profErr) {
+        console.warn('Profile upsert notice:', profErr);
       }
+
+      // Check if email confirmation is required by Supabase
+      const needsEmailConfirmation = !authData.session || !authData.user.confirmed_at;
 
       const newUser = {
         id: userId,
         name: userData.name.trim(),
         email: userData.email.toLowerCase().trim(),
-        phone: userData.phone || null,
+        phone: userData.phone ? userData.phone.trim() : null,
         avatar: avatarUrl,
         skills: skills,
         account_type: accountType,
         verification_uploaded: isVerified,
         verification_document_url: docUrl,
+        needsEmailConfirmation: needsEmailConfirmation,
       };
 
-      setLocal(LOCAL_SESSION, newUser);
+      if (!needsEmailConfirmation) {
+        setLocal(LOCAL_SESSION, newUser);
+      }
+
       return { data: newUser, error: null };
     } catch (err) {
       return { data: null, error: { message: err.message } };
@@ -355,13 +386,14 @@ export async function signUp(userData) {
     name: userData.name.trim(),
     email: userData.email.toLowerCase().trim(),
     password: userData.password,
-    phone: userData.phone || null,
+    phone: userData.phone ? userData.phone.trim() : null,
     avatar: userData.avatar || defaultAvatar,
     skills: skills,
     account_type: accountType,
     verification_uploaded: isVerified,
     verification_document_url: userData.verificationDocument?.base64 || null,
     createdAt: new Date().toISOString(),
+    needsEmailConfirmation: false,
   };
 
   users.push(newUser);
@@ -375,47 +407,90 @@ export async function signUp(userData) {
  * Auth: Sign In
  */
 export async function signIn(email, password) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+
   if (isSupabaseConfigured) {
     try {
       const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password,
       });
 
-      if (authErr) return { data: null, error: authErr };
+      if (authErr) {
+        const msg = (authErr.message || '').toLowerCase();
+        if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+          return {
+            data: null,
+            error: {
+              message: 'Your email address has not been confirmed yet. Please check your inbox (and spam folder) and click the verification link before signing in.',
+              isEmailUnconfirmed: true,
+              email: cleanEmail,
+            }
+          };
+        }
+        return { data: null, error: authErr };
+      }
 
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authData.user.id)
-        .single();
+        .maybeSingle();
 
-      const localSkills = getLocal(`collabx_user_skills_${profile.id}`, []);
-      const userSkills = Array.isArray(profile.skills) && profile.skills.length > 0 
+      if (!profile) {
+        const meta = authData.user.user_metadata || {};
+        const newProf = {
+          id: authData.user.id,
+          name: meta.name || cleanEmail.split('@')[0] || 'User',
+          email: cleanEmail,
+          phone: meta.phone || null,
+          avatar_url: meta.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(meta.name || cleanEmail)}`,
+          account_type: meta.account_type || (isValidOrgEmail(cleanEmail) ? 'organisation' : 'public'),
+          verification_uploaded: meta.account_type === 'organisation' || isValidOrgEmail(cleanEmail),
+        };
+        try {
+          await supabase.from('profiles').upsert([newProf], { onConflict: 'id' });
+          profile = newProf;
+        } catch (e) {}
+      }
+
+      const localSkills = getLocal(`collabx_user_skills_${authData.user.id}`, []);
+      const userSkills = Array.isArray(profile?.skills) && profile.skills.length > 0 
         ? profile.skills 
         : localSkills;
 
       const user = {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone,
-        avatar: profile.avatar_url,
+        id: authData.user.id,
+        name: profile?.name || cleanEmail.split('@')[0] || 'User',
+        email: profile?.email || cleanEmail,
+        phone: profile?.phone || null,
+        avatar: profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanEmail)}`,
         skills: userSkills,
-        account_type: getUserAccountType(profile),
-        verification_uploaded: profile.verification_uploaded,
+        account_type: getUserAccountType(profile || { email: cleanEmail }),
+        verification_uploaded: profile?.verification_uploaded || false,
       };
 
       setLocal(LOCAL_SESSION, user);
       return { data: user, error: null };
     } catch (err) {
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+        return {
+          data: null,
+          error: {
+            message: 'Your email address has not been confirmed yet. Please check your inbox (and spam folder) and click the verification link before signing in.',
+            isEmailUnconfirmed: true,
+            email: cleanEmail,
+          }
+        };
+      }
       return { data: null, error: { message: err.message } };
     }
   }
 
   // Fallback
   const users = getLocal(LOCAL_USERS, []);
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+  const user = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
   if (!user) return { data: null, error: { message: 'Invalid email or password.' } };
 
   const localSkills = getLocal(`collabx_user_skills_${user.id}`, user.skills || []);

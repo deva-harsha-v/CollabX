@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound, Phone, Building2, UserCheck, FileCheck } from 'lucide-react';
-import { signUp, signIn, adminSignIn, isValidOrgEmail } from '../lib/storage';
+import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound, Phone, Building2, UserCheck, FileCheck, CheckCircle2, RotateCcw } from 'lucide-react';
+import { signUp, signIn, adminSignIn, isValidOrgEmail, resendVerificationEmail } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 
@@ -22,6 +22,12 @@ const AuthPage = () => {
   const [skills, setSkills] = useState([]);
   const [docName, setDocName] = useState('');
   const [docBase64, setDocBase64] = useState(null);
+
+  // Email Confirmation & Resend States
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(null); // email string if waiting for verification
+  const [isResending, setIsResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState(null);
 
   // Error & Loading States
   const [errorMsg, setErrorMsg] = useState('');
@@ -48,6 +54,25 @@ const AuthPage = () => {
 
     if (data) {
       navigate('/admin');
+    }
+  };
+
+  const handleResend = async (targetEmail) => {
+    const toEmail = targetEmail || email || confirmationEmailSent || unconfirmedEmail;
+    if (!toEmail) return;
+
+    setIsResending(true);
+    setResendMsg('');
+    setErrorMsg('');
+
+    const { error } = await resendVerificationEmail(toEmail);
+    setIsResending(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Failed to resend confirmation email.');
+    } else {
+      setResendMsg(`Confirmation link has been resent to ${toEmail}. Please check your inbox and spam folder.`);
+      setTimeout(() => setResendMsg(''), 8000);
     }
   };
 
@@ -92,6 +117,8 @@ const AuthPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setResendMsg('');
+    setUnconfirmedEmail(null);
 
     if (mode === 'signup') {
       if (!name.trim()) {
@@ -136,7 +163,7 @@ const AuthPage = () => {
 
       const { data: newUser, error } = await signUp({
         name,
-        email,
+        email: email.trim().toLowerCase(),
         password,
         phone: phone.trim() || null,
         account_type: accountType,
@@ -149,6 +176,12 @@ const AuthPage = () => {
 
       if (error) {
         setErrorMsg(error.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      // If email confirmation is required, display confirmation screen
+      if (newUser?.needsEmailConfirmation) {
+        setConfirmationEmailSent(email.trim().toLowerCase());
         return;
       }
 
@@ -168,6 +201,9 @@ const AuthPage = () => {
       setIsSubmitting(false);
 
       if (error) {
+        if (error.isEmailUnconfirmed) {
+          setUnconfirmedEmail(error.email || email.trim().toLowerCase());
+        }
         setErrorMsg(error.message || 'Invalid credentials.');
         return;
       }
@@ -201,87 +237,193 @@ const AuthPage = () => {
       {/* Auth Card Shell */}
       <div className="relative z-10 w-full max-w-md p-8 bg-[#0b2240]/90 border border-[#0ea5e9]/35 rounded-3xl backdrop-blur-2xl shadow-[0_0_50px_rgba(74, 127, 167,0.25)]">
         
-        {/* Toggle Mode Tabs (Create Account / Sign In) */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 mb-3 bg-[#06142e]/80 border border-[#0ea5e9]/30 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => { setMode('signup'); setErrorMsg(''); }}
-            className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'signup'
-                ? 'bg-gradient-to-r from-[#0b2240] to-[#0b2240] text-[#f0f9ff] shadow-md border border-[#38bdf8]/30'
-                : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
-            }`}
-          >
-            Create Account
-          </button>
+        {/* EMAIL CONFIRMATION REQUIRED SCREEN */}
+        {confirmationEmailSent ? (
+          <div className="text-center py-4 animate-fade-in space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#0b2240] via-[#06142e] to-[#0ea5e9]/40 border border-[#0ea5e9]/60 mx-auto flex items-center justify-center shadow-lg shadow-[#0ea5e9]/20">
+              <Mail className="w-8 h-8 text-[#38bdf8] animate-pulse" />
+            </div>
 
-          <button
-            type="button"
-            onClick={() => { setMode('signin'); setErrorMsg(''); }}
-            className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              mode === 'signin'
-                ? 'bg-gradient-to-r from-[#0b2240] to-[#0b2240] text-[#f0f9ff] shadow-md border border-[#38bdf8]/30'
-                : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
-            }`}
-          >
-            Sign In
-          </button>
-        </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-[10px] font-bold uppercase mb-2">
+                <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+                <span>Verification Email Dispatched</span>
+              </div>
+              <h2 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
+                Verify Your Account
+              </h2>
+              <p className="text-xs text-[#38bdf8]/80 mt-2 leading-relaxed">
+                We've sent an official confirmation link to:
+              </p>
+              <div className="mt-2 p-2.5 rounded-xl bg-[#06142e] border border-[#0ea5e9]/40 font-mono text-xs font-bold text-[#38bdf8] truncate shadow-inner">
+                {confirmationEmailSent}
+              </div>
+            </div>
 
-        {/* Account Type Selector (Organisation vs Public) - Positioned directly below Create Account / Sign In */}
-        {mode === 'signup' && (
-          <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-[#06142e]/90 border border-[#0ea5e9]/40 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => { setAccountType('organisation'); setErrorMsg(''); }}
-              className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                accountType === 'organisation'
-                  ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
-                  : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 text-[#38bdf8]" />
-              <span>Organisation Account</span>
-            </button>
+            <div className="p-3.5 rounded-2xl bg-[#06142e]/80 border border-[#0ea5e9]/30 text-left text-xs font-mono text-[#38bdf8]/90 space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-[#38bdf8] font-bold">1.</span>
+                <span>Open your inbox and click the verification link.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#38bdf8] font-bold">2.</span>
+                <span>Check your <b className="text-[#f0f9ff]">Spam / Junk</b> folder if not in primary inbox.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#38bdf8] font-bold">3.</span>
+                <span>Return and sign in to activate your platform access.</span>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => { setAccountType('public'); setErrorMsg(''); }}
-              className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                accountType === 'public'
-                  ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
-                  : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5 text-[#38bdf8]" />
-              <span>Public Account</span>
-            </button>
+            {resendMsg && (
+              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{resendMsg}</span>
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmationEmailSent(null);
+                  setMode('signin');
+                  setEmail(confirmationEmailSent);
+                  setErrorMsg('');
+                  setResendMsg('');
+                }}
+                className="w-full red-pill-button py-3 text-sm font-bold shadow-xl flex items-center justify-center gap-2"
+              >
+                <span>Proceed to Sign In</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleResend(confirmationEmailSent)}
+                disabled={isResending}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#06142e] hover:bg-[#0b2240] border border-[#0ea5e9]/35 text-[#38bdf8] hover:text-[#f0f9ff] text-xs font-semibold font-mono flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isResending ? 'animate-spin' : ''}`} />
+                <span>{isResending ? 'Resending Link...' : 'Resend Verification Link'}</span>
+              </button>
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Toggle Mode Tabs (Create Account / Sign In) */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 mb-3 bg-[#06142e]/80 border border-[#0ea5e9]/30 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => { setMode('signup'); setErrorMsg(''); setResendMsg(''); setUnconfirmedEmail(null); }}
+                className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  mode === 'signup'
+                    ? 'bg-gradient-to-r from-[#0b2240] to-[#0b2240] text-[#f0f9ff] shadow-md border border-[#38bdf8]/30'
+                    : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+                }`}
+              >
+                Create Account
+              </button>
 
-        {/* Card Header */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
-            {mode === 'signup' 
-              ? (accountType === 'organisation' ? 'Organisation Member Registration' : 'Public Solver Registration')
-              : 'Welcome Back'}
-          </h2>
-          <p className="text-xs text-[#38bdf8]/80 mt-1">
-            {mode === 'signup'
-              ? (accountType === 'organisation'
-                  ? 'Verified institutional account for academic, research, and corporate members'
-                  : 'Individual account with official identity document verification')
-              : 'Enter your credentials to access the verified challenge feed'}
-          </p>
-        </div>
+              <button
+                type="button"
+                onClick={() => { setMode('signin'); setErrorMsg(''); setResendMsg(''); }}
+                className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  mode === 'signin'
+                    ? 'bg-gradient-to-r from-[#0b2240] to-[#0b2240] text-[#f0f9ff] shadow-md border border-[#38bdf8]/30'
+                    : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+                }`}
+              >
+                Sign In
+              </button>
+            </div>
 
-        {/* Inline Error Message */}
-        {errorMsg && (
-          <div className="mb-5 p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2 animate-fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+            {/* Account Type Selector (Organisation vs Public) - Positioned directly below Create Account / Sign In */}
+            {mode === 'signup' && (
+              <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-[#06142e]/90 border border-[#0ea5e9]/40 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => { setAccountType('organisation'); setErrorMsg(''); }}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    accountType === 'organisation'
+                      ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
+                      : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5 text-[#38bdf8]" />
+                  <span>Organisation Account</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setAccountType('public'); setErrorMsg(''); }}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    accountType === 'public'
+                      ? 'bg-gradient-to-r from-[#0b2240] to-[#143d6e] text-[#f0f9ff] shadow-md border border-[#38bdf8]/60 ring-1 ring-[#38bdf8]/40'
+                      : 'text-[#38bdf8]/70 hover:text-[#f0f9ff]'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-[#38bdf8]" />
+                  <span>Public Account</span>
+                </button>
+              </div>
+            )}
+
+            {/* Card Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
+                {mode === 'signup' 
+                  ? (accountType === 'organisation' ? 'Organisation Member Registration' : 'Public Solver Registration')
+                  : 'Welcome Back'}
+              </h2>
+              <p className="text-xs text-[#38bdf8]/80 mt-1">
+                {mode === 'signup'
+                  ? (accountType === 'organisation'
+                      ? 'Institutional registration — email verification required before login'
+                      : 'Public registration with identity verification — email verification required')
+                  : 'Enter your credentials to access the verified challenge feed'}
+              </p>
+            </div>
+
+            {/* Resend Success Message */}
+            {resendMsg && (
+              <div className="mb-5 p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{resendMsg}</span>
+              </div>
+            )}
+
+            {/* Inline Error Message */}
+            {errorMsg && (
+              <div className="mb-5 p-3.5 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs space-y-2 animate-fade-in">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                  <span className="leading-snug">{errorMsg}</span>
+                </div>
+
+                {/* Resend Link Button for Unconfirmed Email */}
+                {unconfirmedEmail && (
+                  <div className="pt-2 border-t border-red-500/30 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono text-red-300">Need a new link?</span>
+                    <button
+                      type="button"
+                      onClick={() => handleResend(unconfirmedEmail)}
+                      disabled={isResending}
+                      className="px-3 py-1 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-400/50 text-white font-mono text-[11px] font-bold transition-colors disabled:opacity-50"
+                    >
+                      {isResending ? 'Sending...' : 'Resend Email'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
         {/* Form Container */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -472,8 +614,10 @@ const AuthPage = () => {
               <span>{isSubmitting ? 'Processing...' : mode === 'signup' ? 'Complete Sign Up & Join' : 'Sign In to CollabX'}</span>
               <ArrowRight className="w-4 h-4 ml-2 inline" />
             </button>
-          </div>
-        </form>
+            </div>
+          </form>
+        </>
+      )}
       </div>
 
       {/* Discrete Bottom-Right Shield Icon Button for Admin Access */}
