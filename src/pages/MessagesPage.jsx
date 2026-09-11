@@ -36,27 +36,42 @@ const ChatPanel = ({ room, currentUser, onBack, onDeleteChat }) => {
   useEffect(() => {
     if (!room || !isSupabaseConfigured) return;
     const cleanId = room.room_id ? room.room_id.replace('room_', '') : '';
+    const postId = room.post_id ? room.post_id.replace('room_', '') : '';
+    const activeChannels = [];
 
-    // 1. Listen for Supabase Realtime WebSocket broadcasts (instant peer-to-peer relay)
-    const broadcastChannel = supabase
-      .channel(`room_broadcast_${room.room_id}`, {
-        config: { broadcast: { self: true } }
-      })
-      .on('broadcast', { event: 'chat_message' }, (payload) => {
-        const newMsg = payload.payload;
-        if (newMsg) {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-          setTimeout(scrollToBottom, 100);
-        }
-      })
+    const handleIncomingMessage = (newMsg) => {
+      if (!newMsg) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+      setTimeout(scrollToBottom, 100);
+    };
+
+    // 1. Listen for Supabase Realtime WebSocket broadcasts on canonical room channel
+    const ch1 = supabase
+      .channel(`room_broadcast_${room.room_id}`, { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'chat_message' }, (payload) => handleIncomingMessage(payload?.payload))
       .subscribe();
+    activeChannels.push(ch1);
 
-    // 2. Also listen for Postgres changes
+    const ch2 = supabase
+      .channel(`room_${room.room_id}`, { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'chat_message' }, (payload) => handleIncomingMessage(payload?.payload))
+      .subscribe();
+    activeChannels.push(ch2);
+
+    if (postId && postId !== room.room_id) {
+      const ch3 = supabase
+        .channel(`room_broadcast_${postId}`, { config: { broadcast: { self: true } } })
+        .on('broadcast', { event: 'chat_message' }, (payload) => handleIncomingMessage(payload?.payload))
+        .subscribe();
+      activeChannels.push(ch3);
+    }
+
+    // 2. Also listen for Postgres changes on chat_messages table
     const dbChannel = supabase
-      .channel('messages_page_' + room.room_id)
+      .channel('messages_page_db_' + room.room_id)
       .on(
         'postgres_changes',
         {
@@ -78,18 +93,49 @@ const ChatPanel = ({ room, currentUser, onBack, onDeleteChat }) => {
             profiles: prof || { name: 'User', avatar_url: '' },
           };
 
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === formattedMsg.id)) return prev;
-            return [...prev, formattedMsg];
-          });
-          setTimeout(scrollToBottom, 100);
+          handleIncomingMessage(formattedMsg);
         }
       )
       .subscribe();
+    activeChannels.push(dbChannel);
+
+    if (postId && postId !== room.room_id) {
+      const dbChannelPost = supabase
+        .channel('messages_page_db_' + postId)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: 'chat_room_id=eq.' + postId,
+          },
+          async (payload) => {
+            const newMsg = payload.new;
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('name, avatar_url')
+              .eq('id', newMsg.sender_id)
+              .single();
+
+            const formattedMsg = {
+              ...newMsg,
+              profiles: prof || { name: 'User', avatar_url: '' },
+            };
+
+            handleIncomingMessage(formattedMsg);
+          }
+        )
+        .subscribe();
+      activeChannels.push(dbChannelPost);
+    }
 
     return () => {
-      supabase.removeChannel(broadcastChannel);
-      supabase.removeChannel(dbChannel);
+      activeChannels.forEach((ch) => {
+        try {
+          supabase.removeChannel(ch);
+        } catch (e) {}
+      });
     };
   }, [room]);
 

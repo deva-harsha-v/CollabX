@@ -404,6 +404,147 @@ export async function signUp(userData) {
 }
 
 /**
+ * Auth: Emergency Fast-Track Registration
+ * Bypasses email domain validation and password requirements.
+ * Directly logs user in so they can post crisis problems immediately.
+ */
+export async function signUpEmergency(userData) {
+  const cleanEmail = (userData.email || '').trim().toLowerCase();
+  const userName = (userData.name || '').trim();
+  const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=dc2626,991b1b,7f1d1d`;
+  let docUrl = null;
+
+  let userId = `usr_emg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  if (isSupabaseConfigured) {
+    try {
+      // Auto-generate strong internal emergency password for Supabase Auth
+      const emergencySecret = `EmgCrisis2026!_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      
+      const { data: authData } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: emergencySecret,
+        options: {
+          data: {
+            name: userName,
+            is_emergency: true,
+            has_password: false,
+            emergency_first_post_pending: true,
+            account_type: 'emergency',
+            avatar_url: defaultAvatar,
+          }
+        }
+      });
+
+      if (authData?.user) {
+        userId = authData.user.id;
+      }
+
+      // Upload verification document if provided
+      if (userData.verificationDocument?.base64) {
+        try {
+          const docPath = `emg_doc_${userId}_${Date.now()}.pdf`;
+          let blob;
+          if (userData.verificationDocument.base64.startsWith('data:')) {
+            blob = await (await fetch(userData.verificationDocument.base64)).blob();
+          } else {
+            blob = userData.verificationDocument.base64;
+          }
+          await supabase.storage.from('verification-documents').upload(docPath, blob);
+          docUrl = docPath;
+        } catch (e) {}
+      }
+
+      // Upsert profile
+      try {
+        await supabase.from('profiles').upsert([{
+          id: userId,
+          name: userName,
+          email: cleanEmail,
+          avatar_url: defaultAvatar,
+          verification_uploaded: true,
+          verification_document_url: docUrl,
+        }], { onConflict: 'id' });
+      } catch (profErr) {}
+
+    } catch (err) {
+      console.warn('[storage] Supabase emergency signup notice:', err);
+    }
+  }
+
+  const emergencyUser = {
+    id: userId,
+    name: userName,
+    email: cleanEmail,
+    avatar: defaultAvatar,
+    skills: ['emergency'],
+    account_type: 'emergency',
+    is_emergency: true,
+    has_password: false,
+    emergency_first_post_pending: true,
+    verification_uploaded: true,
+    verification_document_url: docUrl || userData.verificationDocument?.base64 || null,
+    createdAt: new Date().toISOString(),
+    needsEmailConfirmation: false,
+  };
+
+  // Add to local users and establish active session immediately
+  const users = getLocal(LOCAL_USERS, []);
+  const existingIdx = users.findIndex(u => u.email.toLowerCase() === cleanEmail);
+  if (existingIdx >= 0) {
+    users[existingIdx] = { ...users[existingIdx], ...emergencyUser };
+  } else {
+    users.push(emergencyUser);
+  }
+  setLocal(LOCAL_USERS, users);
+  setLocal(LOCAL_SESSION, emergencyUser);
+
+  // Set account type mapping
+  const accMap = getLocal('collabx_user_account_types_map', {});
+  accMap[userId] = 'emergency';
+  setLocal('collabx_user_account_types_map', accMap);
+
+  return { data: emergencyUser, error: null };
+}
+
+/**
+ * Set Account Password directly for Emergency Users
+ */
+export async function setUserInitialPassword(newPassword) {
+  if (!newPassword || newPassword.length < 6) {
+    return { data: null, error: { message: 'Password must be at least 6 characters long.' } };
+  }
+
+  const session = getLocal(LOCAL_SESSION, {});
+
+  if (isSupabaseConfigured) {
+    try {
+      const { error: authErr } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: {
+          has_password: true,
+        }
+      });
+      if (authErr) {
+        console.warn('[storage] updateUser password error:', authErr.message);
+      }
+    } catch (e) {}
+  }
+
+  if (session && session.id) {
+    session.has_password = true;
+    session.password = newPassword;
+    setLocal(LOCAL_SESSION, session);
+
+    const users = getLocal(LOCAL_USERS, []);
+    const updatedUsers = users.map(u => u.id === session.id ? { ...u, has_password: true, password: newPassword } : u);
+    setLocal(LOCAL_USERS, updatedUsers);
+  }
+
+  return { data: true, error: null };
+}
+
+/**
  * Auth: Sign In
  */
 export async function signIn(email, password) {
@@ -515,9 +656,23 @@ export async function signOut() {
  * Create Post: Stores required phone_number, optional skills, float coordinates, solver_requirement
  */
 export async function createPost(postData) {
+  const session = getLocal(LOCAL_SESSION, {});
+  const isEmergency = Boolean(
+    postData.is_emergency ||
+    postData.isEmergency ||
+    session.emergency_first_post_pending ||
+    (session.is_emergency && session.emergency_first_post_pending !== false)
+  );
+
   const solverReq = postData.solver_requirement || postData.solverRequirement || 'organisation_only';
   const rawSkills = Array.isArray(postData.skills) ? [...postData.skills] : [];
   const encodedSkills = [...rawSkills, `__req:${solverReq}`];
+  if (isEmergency) {
+    encodedSkills.unshift('emergency');
+  }
+
+  // Fallback phone if emergency user didn't specify one
+  const cleanPhone = (postData.phone_number || '').trim() || (isEmergency ? '9999999999' : '');
 
   if (isSupabaseConfigured) {
     try {
@@ -544,7 +699,7 @@ export async function createPost(postData) {
         description: postData.description.trim(),
         organization: postData.organization ? postData.organization.trim() : null,
         skills: encodedSkills,
-        phone_number: postData.phone_number.trim(), // Required
+        phone_number: cleanPhone,
         address: postData.address ? postData.address.trim() : null,
         latitude: postData.coordinates?.latitude || null, // Full unrounded float
         longitude: postData.coordinates?.longitude || null, // Full unrounded float
@@ -558,11 +713,24 @@ export async function createPost(postData) {
         const reqMap = getLocal('collabx_post_req_map', {});
         reqMap[newPost.id] = solverReq;
         setLocal('collabx_post_req_map', reqMap);
+
+        if (isEmergency) {
+          const emergMap = getLocal('collabx_emergency_posts_map', {});
+          emergMap[newPost.id] = true;
+          setLocal('collabx_emergency_posts_map', emergMap);
+        }
+      }
+
+      // If user had emergency_first_post_pending, clear it now that first post is submitted
+      if (session && session.emergency_first_post_pending) {
+        session.emergency_first_post_pending = false;
+        setLocal(LOCAL_SESSION, session);
       }
 
       return { 
         data: { 
           ...newPost, 
+          is_emergency: isEmergency,
           skills: cleanPostSkills(newPost.skills), 
           solver_requirement: solverReq,
           progress: extractPostProgress(newPost) 
@@ -576,12 +744,22 @@ export async function createPost(postData) {
 
   // Fallback Local Storage
   const posts = getLocal(LOCAL_POSTS, []);
-  const session = getLocal(LOCAL_SESSION, {});
   const newPostId = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   const reqMap = getLocal('collabx_post_req_map', {});
   reqMap[newPostId] = solverReq;
   setLocal('collabx_post_req_map', reqMap);
+
+  if (isEmergency) {
+    const emergMap = getLocal('collabx_emergency_posts_map', {});
+    emergMap[newPostId] = true;
+    setLocal('collabx_emergency_posts_map', emergMap);
+  }
+
+  if (session && session.emergency_first_post_pending) {
+    session.emergency_first_post_pending = false;
+    setLocal(LOCAL_SESSION, session);
+  }
 
   const newPost = {
     id: newPostId,
@@ -591,14 +769,15 @@ export async function createPost(postData) {
     author_account_type: session.account_type || getUserAccountType(session),
     title: postData.title.trim(),
     description: postData.description.trim(),
-    skills: postData.skills || null,
+    skills: isEmergency ? ['emergency', ...(postData.skills || [])] : (postData.skills || null),
     solver_requirement: solverReq,
-    phone_number: postData.phone_number.trim(),
+    phone_number: cleanPhone,
     organization: postData.organization ? postData.organization.trim() : null,
     address: postData.address ? postData.address.trim() : null,
     coordinates: postData.coordinates || null,
     media: postData.media || null,
     status: 'live',
+    is_emergency: isEmergency,
     createdAt: new Date().toISOString(),
   };
 
@@ -629,13 +808,37 @@ export function extractPostProgress(post) {
   return 0;
 }
 
+export function isPostEmergency(post) {
+  if (!post) return false;
+  if (post.is_emergency === true || post.isEmergency === true) return true;
+  const emergMap = getLocal('collabx_emergency_posts_map', {});
+  if (post.id && emergMap[post.id]) return true;
+  if (Array.isArray(post.skills)) {
+    return post.skills.some(s => typeof s === 'string' && (s.toLowerCase() === 'emergency' || s.toLowerCase() === '__emergency'));
+  }
+  return false;
+}
+
+export function sortPostsWithEmergencyFirst(postsList) {
+  if (!Array.isArray(postsList)) return [];
+  return [...postsList].sort((a, b) => {
+    const aEmerg = isPostEmergency(a) ? 1 : 0;
+    const bEmerg = isPostEmergency(b) ? 1 : 0;
+    if (bEmerg !== aEmerg) return bEmerg - aEmerg; // Emergency posts strictly pinned at the top!
+    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+    return dateB - dateA;
+  });
+}
+
 export function cleanPostSkills(skills) {
   if (!Array.isArray(skills)) return [];
-  return skills.filter(s => typeof s === 'string' && !s.startsWith('__progress:') && !s.startsWith('__req:'));
+  return skills.filter(s => typeof s === 'string' && !s.startsWith('__progress:') && !s.startsWith('__req:') && s.toLowerCase() !== 'emergency' && s.toLowerCase() !== '__emergency');
 }
 
 /**
  * Fetch Public Feed (ONLY 'live' challenges — NEVER shows completed or deleted posts)
+ * Guarantees Emergency posts are pinned to the top across all users
  */
 export async function getAllPosts() {
   const deletedIds = await getGlobalDeletedPostIds();
@@ -654,6 +857,7 @@ export async function getAllPosts() {
           .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
           .map(p => ({ 
             ...p, 
+            is_emergency: isPostEmergency(p),
             skills: cleanPostSkills(p.skills),
             solver_requirement: extractPostRequirement(p),
             progress: extractPostProgress(p),
@@ -663,7 +867,7 @@ export async function getAllPosts() {
           }));
 
         return { 
-          data: liveFiltered, 
+          data: sortPostsWithEmergencyFirst(liveFiltered), 
           error: null 
         };
       }
@@ -671,19 +875,22 @@ export async function getAllPosts() {
       // Fallback RPC if direct query fails (filter strictly to status == 'live')
       const { data, error } = await supabase.rpc('get_public_posts');
       if (error) return { data: [], error };
+      const rpcFiltered = (data || [])
+        .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
+        .map(p => ({ 
+          ...p, 
+          is_emergency: isPostEmergency(p),
+          skills: cleanPostSkills(p.skills),
+          solver_requirement: extractPostRequirement(p),
+          progress: extractPostProgress(p),
+          phone_number: null,
+          latitude: null,
+          longitude: null,
+        }));
+
       return { 
-        data: (data || [])
-          .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
-          .map(p => ({ 
-            ...p, 
-            skills: cleanPostSkills(p.skills),
-            solver_requirement: extractPostRequirement(p),
-            progress: extractPostProgress(p),
-            phone_number: null,
-            latitude: null,
-            longitude: null,
-          })), 
-          error: null 
+        data: sortPostsWithEmergencyFirst(rpcFiltered), 
+        error: null 
       };
     } catch (err) {
       return { data: [], error: { message: err.message } };
@@ -704,6 +911,7 @@ export async function getAllPosts() {
       description: p.description,
       organization: p.organization,
       skills: cleanPostSkills(p.skills),
+      is_emergency: isPostEmergency(p),
       solver_requirement: extractPostRequirement(p),
       media_url: p.media,
       status: p.status,
@@ -714,7 +922,7 @@ export async function getAllPosts() {
       longitude: null,
     }));
 
-  return { data: publicPosts, error: null };
+  return { data: sortPostsWithEmergencyFirst(publicPosts), error: null };
 }
 
 /**
@@ -767,6 +975,7 @@ export async function getPostDetails(postId) {
             status: postRow.status,
             progress: extractPostProgress(postRow),
             created_at: postRow.created_at,
+            is_emergency: isPostEmergency(postRow),
             is_authorized: isAccepted,
             user_contact_status: isAuthor ? 'author' : contactStatus,
           },
@@ -781,6 +990,7 @@ export async function getPostDetails(postId) {
         return { 
           data: { 
             ...detail, 
+            is_emergency: isPostEmergency(detail),
             skills: cleanPostSkills(detail.skills),
             solver_requirement: extractPostRequirement(detail),
             progress: extractPostProgress(detail) 
@@ -817,6 +1027,7 @@ export async function getPostDetails(postId) {
       description: post.description,
       organization: post.organization,
       skills: cleanPostSkills(post.skills),
+      is_emergency: isPostEmergency(post),
       solver_requirement: extractPostRequirement(post),
       address: post.address,
       phone_number: isAccepted ? post.phone_number : null,
@@ -848,15 +1059,18 @@ export async function getPostsByUser(userId) {
         .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
+      const filtered = (data || [])
+        .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+        .map(p => ({ 
+          ...p, 
+          is_emergency: isPostEmergency(p),
+          skills: cleanPostSkills(p.skills),
+          solver_requirement: extractPostRequirement(p),
+          progress: extractPostProgress(p) 
+        }));
+
       return { 
-        data: (data || [])
-          .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
-          .map(p => ({ 
-            ...p, 
-            skills: cleanPostSkills(p.skills),
-            solver_requirement: extractPostRequirement(p),
-            progress: extractPostProgress(p) 
-          })), 
+        data: sortPostsWithEmergencyFirst(filtered), 
         error 
       };
     } catch (err) {
@@ -869,11 +1083,12 @@ export async function getPostsByUser(userId) {
     .filter(p => p.authorId === userId && p.status !== 'deleted' && !deletedIds.includes(p.id))
     .map(p => ({ 
       ...p, 
+      is_emergency: isPostEmergency(p),
       skills: cleanPostSkills(p.skills),
       solver_requirement: extractPostRequirement(p),
       progress: extractPostProgress(p) 
     }));
-  return { data: userPosts, error: null };
+  return { data: sortPostsWithEmergencyFirst(userPosts), error: null };
 }
 
 /**
@@ -904,30 +1119,36 @@ export async function getMyIdeas() {
           .order('created_at', { ascending: false });
 
         if (!postErr && posts) {
+          const mapped = posts
+            .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+            .map(p => ({ 
+              ...p, 
+              is_emergency: isPostEmergency(p),
+              skills: cleanPostSkills(p.skills),
+              solver_requirement: extractPostRequirement(p),
+              progress: extractPostProgress(p) 
+            }));
+
           return { 
-            data: posts
-              .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
-              .map(p => ({ 
-                ...p, 
-                skills: cleanPostSkills(p.skills),
-                solver_requirement: extractPostRequirement(p),
-                progress: extractPostProgress(p) 
-              })), 
+            data: sortPostsWithEmergencyFirst(mapped), 
             error: null 
           };
         }
       }
 
       const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_ideas');
+      const rpcMapped = (rpcData || [])
+        .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
+        .map(p => ({ 
+          ...p, 
+          is_emergency: isPostEmergency(p),
+          skills: cleanPostSkills(p.skills),
+          solver_requirement: extractPostRequirement(p),
+          progress: extractPostProgress(p) 
+        }));
+
       return { 
-        data: (rpcData || [])
-          .filter(p => !deletedIds.includes(p.id) && p.status !== 'deleted')
-          .map(p => ({ 
-            ...p, 
-            skills: cleanPostSkills(p.skills),
-            solver_requirement: extractPostRequirement(p),
-            progress: extractPostProgress(p) 
-          })), 
+        data: sortPostsWithEmergencyFirst(rpcMapped), 
         error: rpcErr 
       };
     } catch (err) {
@@ -954,6 +1175,7 @@ export async function getMyIdeas() {
       description: p.description,
       organization: p.organization,
       skills: cleanPostSkills(p.skills),
+      is_emergency: isPostEmergency(p),
       solver_requirement: extractPostRequirement(p),
       address: p.address,
       phone_number: p.phone_number,
@@ -965,7 +1187,7 @@ export async function getMyIdeas() {
       created_at: p.createdAt,
     }));
 
-  return { data: ideas, error: null };
+  return { data: sortPostsWithEmergencyFirst(ideas), error: null };
 }
 
 /**
@@ -1192,44 +1414,55 @@ export async function updateContactRequestStatus(requestId, status, postId, solv
 
       if (reqErr) return { data: null, error: reqErr };
 
-      if (status === 'accepted') {
+      const effectivePostId = postId || updatedReq?.post_id;
+      const effectiveSolverId = solverId || updatedReq?.solver_id;
+
+      if (status === 'accepted' && effectivePostId) {
         // Ensure chat room exists for post
         let { data: room } = await supabase
           .from('chat_rooms')
           .select('id')
-          .eq('post_id', postId)
-          .single();
+          .eq('post_id', effectivePostId)
+          .maybeSingle();
 
         if (!room) {
           const { data: newRoom } = await supabase
             .from('chat_rooms')
-            .insert([{ post_id: postId }])
+            .insert([{ post_id: effectivePostId }])
             .select()
-            .single();
+            .maybeSingle();
           room = newRoom;
         }
 
         // Add poster and solver to chat_participants
         if (room) {
-          await supabase.from('chat_participants').upsert([
-            { chat_room_id: room.id, user_id: authData.user.id },
-            { chat_room_id: room.id, user_id: solverId },
-          ]);
+          const participants = [];
+          if (authData?.user?.id) participants.push({ chat_room_id: room.id, user_id: authData.user.id });
+          if (effectiveSolverId) participants.push({ chat_room_id: room.id, user_id: effectiveSolverId });
+          if (participants.length > 0) {
+            try {
+              await supabase.from('chat_participants').upsert(participants, { onConflict: 'chat_room_id, user_id' });
+            } catch (pe) {}
+          }
         }
 
         // Send accepted notification to solver
-        await supabase.from('notifications').insert([{
-          user_id: solverId,
-          type: 'contact_accepted',
-          payload: { post_id: postId, request_id: requestId },
-        }]);
+        if (effectiveSolverId) {
+          await supabase.from('notifications').insert([{
+            user_id: effectiveSolverId,
+            type: 'contact_accepted',
+            payload: { post_id: effectivePostId, request_id: requestId },
+          }]);
+        }
       } else if (status === 'rejected') {
-        // Send rejected notification to solver
-        await supabase.from('notifications').insert([{
-          user_id: solverId,
-          type: 'contact_rejected',
-          payload: { post_id: postId, request_id: requestId },
-        }]);
+        const targetSolver = effectiveSolverId;
+        if (targetSolver) {
+          await supabase.from('notifications').insert([{
+            user_id: targetSolver,
+            type: 'contact_rejected',
+            payload: { post_id: effectivePostId, request_id: requestId },
+          }]);
+        }
       }
 
       return { data: updatedReq, error: null };
@@ -1460,21 +1693,60 @@ export async function getChatMessages(roomId) {
   let supabaseMessages = [];
   if (isSupabaseConfigured) {
     try {
+      let targetRoomId = roomId;
+      let targetPostId = cleanId;
+
+      // 1. Resolve canonical chat room from Supabase
+      try {
+        const { data: roomRecord } = await supabase
+          .from('chat_rooms')
+          .select('id, post_id')
+          .or(`id.eq.${roomId},post_id.eq.${cleanId},post_id.eq.${roomId}`)
+          .maybeSingle();
+
+        if (roomRecord) {
+          targetRoomId = roomRecord.id;
+          targetPostId = roomRecord.post_id;
+        }
+      } catch (re) {}
+
+      // 2. Ensure current user is in chat_participants so RLS is_chat_participant allows access
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const uid = authData?.user?.id;
+        if (uid && targetRoomId) {
+          await supabase.from('chat_participants').upsert(
+            [{ chat_room_id: targetRoomId, user_id: uid }],
+            { onConflict: 'chat_room_id, user_id' }
+          );
+        }
+      } catch (pe) {}
+
+      // 3. Query all messages matching any of candidate room IDs
+      const candidateIds = Array.from(new Set([targetRoomId, targetPostId, roomId, cleanId].filter(Boolean)));
+      const orFilter = candidateIds.map(id => `chat_room_id.eq.${id}`).join(',');
+
       const { data } = await supabase
         .from('chat_messages')
         .select('*, profiles:sender_id(name, avatar_url, email)')
-        .or(`chat_room_id.eq.${roomId},chat_room_id.eq.${cleanId}`)
+        .or(orFilter)
         .order('created_at', { ascending: true });
+
       if (data && Array.isArray(data)) {
         supabaseMessages = data;
       }
     } catch (e) {
-      console.warn('[storage] getChatMessages supabase query note:', e);
+      console.warn('[storage] getChatMessages query note:', e);
     }
   }
 
   const msgs = getLocal(LOCAL_CHAT_MSGS, []);
-  const roomMsgs = msgs.filter(m => m.chat_room_id === roomId || m.chat_room_id === cleanId || m.chat_room_id === `room_${roomId}` || m.chat_room_id === `room_${cleanId}`);
+  const roomMsgs = msgs.filter(m =>
+    m.chat_room_id === roomId ||
+    m.chat_room_id === cleanId ||
+    m.chat_room_id === `room_${roomId}` ||
+    m.chat_room_id === `room_${cleanId}`
+  );
 
   // Merge and deduplicate
   const map = new Map();
@@ -1612,6 +1884,16 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         if (acceptedSolvers) acceptedSolvers.forEach(s => recipientUserIds.add(s.solver_id));
       } catch (e) {}
 
+      // Ensure sender is in chat_participants so RLS is satisfied
+      if (senderUserId && targetRoomId) {
+        try {
+          await supabase.from('chat_participants').upsert(
+            [{ chat_room_id: targetRoomId, user_id: senderUserId }],
+            { onConflict: 'chat_room_id, user_id' }
+          );
+        } catch (pe) {}
+      }
+
       // Insert message into Supabase chat_messages (columns: chat_room_id, sender_id, content)
       if (senderUserId) {
         try {
@@ -1735,24 +2017,32 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
     console.warn('[storage] local notif dispatch error:', e);
   }
 
-  // Supabase Realtime WebSocket broadcast for instant cross-account delivery
+  // Supabase Realtime WebSocket broadcast for instant cross-account delivery across all channels
   if (isSupabaseConfigured) {
     try {
-      const roomChannel = supabase.channel(`room_${targetRoomId}`);
-      roomChannel.send({
-        type: 'broadcast',
-        event: 'chat_message',
-        payload: newMsg
+      const channelNames = [
+        `room_broadcast_${targetRoomId}`,
+        `room_broadcast_${activePostId}`,
+        `room_broadcast_${cleanId}`,
+        `room_broadcast_${roomId}`,
+        `room_${targetRoomId}`,
+        `room_${activePostId}`,
+        `room_${cleanId}`,
+        `room_${roomId}`,
+        `chat_${targetRoomId}`,
+        `chat_${activePostId}`,
+      ];
+      const uniqueChannels = Array.from(new Set(channelNames.filter(Boolean)));
+      uniqueChannels.forEach(chName => {
+        try {
+          const ch = supabase.channel(chName);
+          ch.send({
+            type: 'broadcast',
+            event: 'chat_message',
+            payload: newMsg
+          });
+        } catch (be) {}
       });
-
-      if (cleanId !== targetRoomId) {
-        const postChannel = supabase.channel(`room_${cleanId}`);
-        postChannel.send({
-          type: 'broadcast',
-          event: 'chat_message',
-          payload: newMsg
-        });
-      }
 
       const notifGlobalChannel = supabase.channel('collabx_global_notifications');
       notifGlobalChannel.send({
@@ -1939,18 +2229,38 @@ export async function getAccessibleChatRooms() {
         try {
           const { data: myPosts } = await supabase
             .from('posts')
-            .select('id, title, created_at')
+            .select('id, title, created_at, chat_rooms(id)')
             .eq('author_id', currentUserId);
 
           if (myPosts) {
-            myPosts.forEach(p => {
-              accessibleRoomsMap.set(p.id, {
-                room_id: p.id,
+            for (const p of myPosts) {
+              let canonicalRoomId = p.chat_rooms?.[0]?.id || p.chat_rooms?.id;
+              if (!canonicalRoomId) {
+                try {
+                  const { data: newRoom } = await supabase
+                    .from('chat_rooms')
+                    .insert([{ post_id: p.id }])
+                    .select('id')
+                    .maybeSingle();
+                  if (newRoom) canonicalRoomId = newRoom.id;
+                } catch (e) {}
+              }
+              const finalRoomId = canonicalRoomId || p.id;
+              if (canonicalRoomId) {
+                try {
+                  await supabase.from('chat_participants').upsert(
+                    [{ chat_room_id: canonicalRoomId, user_id: currentUserId }],
+                    { onConflict: 'chat_room_id, user_id' }
+                  );
+                } catch (e) {}
+              }
+              accessibleRoomsMap.set(finalRoomId, {
+                room_id: finalRoomId,
                 post_id: p.id,
                 post_title: p.title,
                 created_at: p.created_at,
               });
-            });
+            }
           }
         } catch (e) {}
 
@@ -1958,21 +2268,41 @@ export async function getAccessibleChatRooms() {
         try {
           const { data: myAcceptedReqs } = await supabase
             .from('contact_requests')
-            .select('post_id, posts:post_id(id, title, created_at)')
+            .select('post_id, posts:post_id(id, title, created_at, chat_rooms(id))')
             .eq('solver_id', currentUserId)
             .eq('status', 'accepted');
 
           if (myAcceptedReqs) {
-            myAcceptedReqs.forEach(req => {
+            for (const req of myAcceptedReqs) {
               if (req.posts) {
-                accessibleRoomsMap.set(req.posts.id, {
-                  room_id: req.posts.id,
+                let canonicalRoomId = req.posts.chat_rooms?.[0]?.id || req.posts.chat_rooms?.id;
+                if (!canonicalRoomId) {
+                  try {
+                    const { data: existingRoom } = await supabase
+                      .from('chat_rooms')
+                      .select('id')
+                      .eq('post_id', req.posts.id)
+                      .maybeSingle();
+                    if (existingRoom) canonicalRoomId = existingRoom.id;
+                  } catch (e) {}
+                }
+                const finalRoomId = canonicalRoomId || req.posts.id;
+                if (canonicalRoomId) {
+                  try {
+                    await supabase.from('chat_participants').upsert(
+                      [{ chat_room_id: canonicalRoomId, user_id: currentUserId }],
+                      { onConflict: 'chat_room_id, user_id' }
+                    );
+                  } catch (e) {}
+                }
+                accessibleRoomsMap.set(finalRoomId, {
+                  room_id: finalRoomId,
                   post_id: req.posts.id,
                   post_title: req.posts.title,
                   created_at: req.posts.created_at,
                 });
               }
-            });
+            }
           }
         } catch (e) {}
       }

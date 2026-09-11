@@ -55,9 +55,20 @@ const FeedPage = () => {
     loadFeedData();
   }, [loadFeedData]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('action') === 'emergency_post' || currentUser?.emergency_first_post_pending) {
+      setIsCreateOpen(true);
+    }
+  }, [location.search, currentUser]);
+
   const handleOpenCreate = () => setIsCreateOpen(true);
   const handleCloseCreate = () => {
     setIsCreateOpen(false);
+    // Clear the action query param if present without reload
+    if (location.search.includes('action=emergency_post')) {
+      navigate(location.pathname, { replace: true });
+    }
     loadFeedData();
   };
 

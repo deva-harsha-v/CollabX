@@ -43,7 +43,7 @@ const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh })
     setIsSubmitting(true);
     setErrorMsg('');
 
-    const { error } = await updateContactRequestStatus(requestId, status);
+    const { error } = await updateContactRequestStatus(requestId, status, postId, solverId);
     setIsSubmitting(false);
 
     if (error) {

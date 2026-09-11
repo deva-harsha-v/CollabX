@@ -41,10 +41,41 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
       setLoading(false);
       setTimeout(scrollToBottom, 100);
 
-      // Subscribe to Supabase Realtime for instant message updates
+      // Subscribe to Supabase Realtime for instant message updates across broadcast & postgres_changes
       if (isSupabaseConfigured) {
-        const channel = supabase
-          .channel(`chat_${room.id}`)
+        const activeChannels = [];
+
+        const handleIncoming = (newMsg) => {
+          if (!newMsg) return;
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          setTimeout(scrollToBottom, 100);
+        };
+
+        const bcRoom = supabase
+          .channel(`room_broadcast_${room.id}`, { config: { broadcast: { self: true } } })
+          .on('broadcast', { event: 'chat_message' }, (p) => handleIncoming(p?.payload))
+          .subscribe();
+        activeChannels.push(bcRoom);
+
+        const chRoom = supabase
+          .channel(`room_${room.id}`, { config: { broadcast: { self: true } } })
+          .on('broadcast', { event: 'chat_message' }, (p) => handleIncoming(p?.payload))
+          .subscribe();
+        activeChannels.push(chRoom);
+
+        if (postId && postId !== room.id) {
+          const bcPost = supabase
+            .channel(`room_broadcast_${postId}`, { config: { broadcast: { self: true } } })
+            .on('broadcast', { event: 'chat_message' }, (p) => handleIncoming(p?.payload))
+            .subscribe();
+          activeChannels.push(bcPost);
+        }
+
+        const dbChannel = supabase
+          .channel(`chat_db_${room.id}`)
           .on(
             'postgres_changes',
             {
@@ -55,7 +86,6 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
             },
             async (payload) => {
               const newMsg = payload.new;
-              // Fetch sender profile details
               const { data: prof } = await supabase
                 .from('profiles')
                 .select('name, avatar_url')
@@ -67,17 +97,16 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
                 profiles: prof || { name: 'User', avatar_url: '' },
               };
 
-              setMessages(prev => {
-                if (prev.some(m => m.id === formattedMsg.id)) return prev;
-                return [...prev, formattedMsg];
-              });
-              setTimeout(scrollToBottom, 100);
+              handleIncoming(formattedMsg);
             }
           )
           .subscribe();
+        activeChannels.push(dbChannel);
 
         return () => {
-          supabase.removeChannel(channel);
+          activeChannels.forEach(ch => {
+            try { supabase.removeChannel(ch); } catch (e) {}
+          });
         };
       }
     } else {

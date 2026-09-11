@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Lock, Camera, Check, AlertCircle, ArrowLeft, ShieldCheck, KeyRound } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useApp } from '../context/AppContext';
-import { updateUserProfile, changeUserPassword } from '../lib/storage';
+import { updateUserProfile, changeUserPassword, setUserInitialPassword } from '../lib/storage';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 import UserBadge from '../components/UserBadge';
 
 const AccountPage = () => {
   const navigate = useNavigate();
   const { currentUser, setCurrentUser } = useApp();
+  const isEmergencyNoPassword = Boolean(currentUser?.is_emergency && !currentUser?.has_password);
 
   const [name, setName] = useState(currentUser?.name || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
@@ -77,7 +78,7 @@ const AccountPage = () => {
     setPasswordErrorMsg('');
     setPasswordSuccessMsg('');
 
-    if (!currentPassword) {
+    if (!isEmergencyNoPassword && !currentPassword) {
       setPasswordErrorMsg('Please enter your current password.');
       return;
     }
@@ -92,20 +93,29 @@ const AccountPage = () => {
 
     setIsChangingPassword(true);
 
-    const { error } = await changeUserPassword({
-      email: currentUser?.email,
-      currentPassword,
-      newPassword,
-    });
+    let res;
+    if (isEmergencyNoPassword) {
+      res = await setUserInitialPassword(newPassword);
+    } else {
+      res = await changeUserPassword({
+        email: currentUser?.email,
+        currentPassword,
+        newPassword,
+      });
+    }
 
     setIsChangingPassword(false);
 
-    if (error) {
-      setPasswordErrorMsg(error.message || 'Failed to change password.');
+    if (res.error) {
+      setPasswordErrorMsg(res.error.message || 'Failed to update password.');
       return;
     }
 
-    setPasswordSuccessMsg('Password changed successfully!');
+    if (isEmergencyNoPassword) {
+      setCurrentUser((prev) => ({ ...prev, has_password: true }));
+    }
+
+    setPasswordSuccessMsg(isEmergencyNoPassword ? 'Password established successfully!' : 'Password changed successfully!');
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
@@ -274,10 +284,21 @@ const AccountPage = () => {
           {/* Card 2: Password & Security */}
           <div className="p-6 sm:p-8 rounded-3xl bg-[#0b2240]/80 border border-[#0ea5e9]/35 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
             <div>
-              <h2 className="font-['Outfit'] font-bold text-xl text-[#f0f9ff] mb-6 flex items-center gap-2">
+              <h2 className="font-['Outfit'] font-bold text-xl text-[#f0f9ff] mb-4 flex items-center gap-2">
                 <KeyRound className="w-5 h-5 text-[#38bdf8]" />
-                <span>Change Password</span>
+                <span>{isEmergencyNoPassword ? 'Set Account Password' : 'Change Password'}</span>
               </h2>
+
+              {isEmergencyNoPassword && (
+                <div className="mb-5 p-3.5 rounded-2xl bg-red-950/60 border border-red-500/50 text-red-200 text-xs font-mono leading-relaxed space-y-1 shadow-md">
+                  <div className="font-bold flex items-center gap-1.5 text-red-100">
+                    <span>🚨 Emergency Account Notice</span>
+                  </div>
+                  <p className="text-[11px] text-red-200/90">
+                    You signed up in Emergency Crisis Mode without setting a password. You can now set your new password directly below without providing a current password.
+                  </p>
+                </div>
+              )}
 
               {passwordErrorMsg && (
                 <div className="mb-4 p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
@@ -294,31 +315,33 @@ const AccountPage = () => {
               )}
 
               <form onSubmit={handleChangePassword} className="space-y-5">
-                {/* Current Password */}
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5">
-                    Current Password <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      required
-                      placeholder="••••••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
-                    />
+                {/* Current Password (Hidden for Emergency Accounts without a password) */}
+                {!isEmergencyNoPassword && (
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5">
+                      Current Password <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                        placeholder="••••••••••••"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
+                      />
+                    </div>
+                    <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">
+                      Required to authorize password change
+                    </p>
                   </div>
-                  <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">
-                    Required to authorize password change
-                  </p>
-                </div>
+                )}
 
                 {/* New Password */}
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5">
-                    New Password
+                    {isEmergencyNoPassword ? 'Create New Password' : 'New Password'}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
@@ -357,7 +380,7 @@ const AccountPage = () => {
                     disabled={isChangingPassword}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0b2240] to-[#0b2240] border border-[#38bdf8]/30 text-[#f0f9ff] font-semibold text-xs transition-all shadow-md hover:scale-[1.02] disabled:opacity-50"
                   >
-                    {isChangingPassword ? 'Updating Password...' : 'Update Password'}
+                    {isChangingPassword ? 'Saving Password...' : (isEmergencyNoPassword ? 'Set Account Password' : 'Update Password')}
                   </button>
                 </div>
               </form>

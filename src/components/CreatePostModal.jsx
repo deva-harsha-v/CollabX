@@ -4,7 +4,8 @@ import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from './RoleAutocompleteInput';
 
 const CreatePostModal = ({ isOpen, onClose }) => {
-  const { addNewPost } = useApp();
+  const { addNewPost, currentUser } = useApp();
+  const isEmergencyUser = Boolean(currentUser?.is_emergency || currentUser?.emergency_first_post_pending);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -116,7 +117,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       return;
     }
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (!cleanPhone || cleanPhone.length !== 10) {
+    if (!isEmergencyUser && (!cleanPhone || cleanPhone.length !== 10)) {
       setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
       return;
     }
@@ -126,13 +127,14 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     const { error } = await addNewPost({
       title,
       description,
-      phone_number: phoneNumber,
+      phone_number: cleanPhone || '9999999999',
       solver_requirement: solverRequirement,
       skills: skills.length > 0 ? skills : null, // Optional
       organization: organization || null,
       address: address || null,
       coordinates: coordinates || null, // Full unrounded float numbers
       media: mediaPreview || null,
+      is_emergency: isEmergencyUser,
     });
 
     setIsSubmitting(false);
@@ -168,10 +170,27 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">Post a Challenge</h3>
-            <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">Publish to Verified Solvers</p>
+            <h3 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
+              {isEmergencyUser ? '🚨 Post Emergency Challenge' : 'Post a Challenge'}
+            </h3>
+            <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">
+              {isEmergencyUser ? 'Priority Live Feed Placement' : 'Publish to Verified Solvers'}
+            </p>
           </div>
         </div>
+
+        {/* Emergency Alert Banner */}
+        {isEmergencyUser && (
+          <div className="mb-4 p-4 rounded-2xl bg-red-950/80 border border-red-500/80 text-red-200 text-xs font-mono shadow-[0_0_25px_rgba(239,68,68,0.4)] flex items-start gap-3 animate-pulse">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-sm text-red-100 font-['Outfit']">🚨 EMERGENCY / CRISIS CHALLENGE POST</h4>
+              <p className="mt-1 text-red-200/90 leading-relaxed">
+                This challenge will be tagged as an Emergency and pinned to the very top of the live feed across all users and devices.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {errorMsg && (
@@ -198,17 +217,17 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             />
           </div>
 
-          {/* Phone Number (Required - Gated Privacy) */}
+          {/* Direct Phone Number */}
           <div>
             <label className="block text-xs font-semibold text-[#38bdf8] uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Phone Number <span className="text-[#38bdf8]">* (10 Digits)</span></span>
-              <span className="text-[10px] text-[#38bdf8] font-mono font-normal">🔒 Gated: Hidden until accepted</span>
+              <span>Direct Phone Number {isEmergencyUser ? <span className="text-[10px] text-[#38bdf8]/60 font-normal">(Optional for Emergency)</span> : <span className="text-[#38bdf8]">*</span>}</span>
+              <span className="text-[10px] text-[#38bdf8]/60 font-mono font-normal">Locked until solver accepted</span>
             </label>
             <div className="relative">
-              <Phone className="w-4 h-4 text-[#38bdf8]/60 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
               <input
                 type="tel"
-                required
+                required={!isEmergencyUser}
                 placeholder="9876543210"
                 maxLength={10}
                 inputMode="numeric"
@@ -218,7 +237,9 @@ const CreatePostModal = ({ isOpen, onClose }) => {
                 className="w-full pl-9 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
               />
             </div>
-            <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">Must be exactly 10 numeric digits</p>
+            <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">
+              {isEmergencyUser ? 'Optional: leave blank or enter a 10-digit number' : 'Must be exactly 10 numeric digits'}
+            </p>
           </div>
 
           {/* Description (Required) */}
@@ -405,7 +426,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               disabled={isSubmitting}
               className="w-full red-pill-button py-3 text-base font-bold shadow-lg disabled:opacity-50"
             >
-              <span>{isSubmitting ? 'Posting Challenge...' : 'Post Challenge'}</span>
+              <span>{isSubmitting ? 'Posting Challenge...' : (isEmergencyUser ? '🚨 Publish Priority Emergency Challenge' : 'Post Challenge')}</span>
             </button>
           </div>
         </form>

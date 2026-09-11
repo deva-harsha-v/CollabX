@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MapPin, Navigation, Phone, Mail, Building2, Tag, Calendar, UserCheck, ShieldCheck, Send, CheckCircle2, Clock, AlertCircle, ShieldAlert, Users, Lock } from 'lucide-react';
+import { X, MapPin, Navigation, Phone, Mail, Building2, Tag, Calendar, UserCheck, ShieldCheck, Send, CheckCircle2, Clock, AlertCircle, ShieldAlert, Users, Lock, MessageSquare } from 'lucide-react';
 import { getPostDetails, createContactRequest } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import UploadVerificationModal from './UploadVerificationModal';
 import UserBadge from './UserBadge';
+import ChatRoomModal from './ChatRoomModal';
 
 const PostDetailModal = ({ postId, isOpen, onClose }) => {
   const { currentUser } = useApp();
@@ -11,6 +12,7 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isVerifOpen, setIsVerifOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   const [contactStatus, setContactStatus] = useState('none'); // 'none' | 'pending' | 'accepted' | 'rejected' | 'author'
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
@@ -199,6 +201,40 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                         </a>
                       </div>
                     )}
+
+                    {/* Direct Realtime Chat Launcher */}
+                    <div className="p-3 rounded-xl bg-[#06142e]/80 border border-[#0ea5e9]/35 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5">
+                        <MessageSquare className="w-4 h-4 text-[#38bdf8] shrink-0" />
+                        <div>
+                          <span className="text-[10px] text-[#38bdf8]/70 block">Realtime Collaboration Chat</span>
+                          <span className="text-sm font-bold text-[#f0f9ff]">Multi-User Room Unlocked</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsChatOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b2240] hover:bg-[#143d6e] border border-[#0ea5e9]/60 text-[#f0f9ff] font-semibold text-xs transition-colors shadow-md"
+                      >
+                        💬 Open Chat Room
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Emergency Crisis Alert Banner */}
+              {post.is_emergency && (
+                <div className="p-4 rounded-2xl bg-red-950/80 border-2 border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.4)] flex items-start gap-3 animate-pulse">
+                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-sm text-red-100 font-['Outfit'] flex items-center gap-2">
+                      <span>🚨 EMERGENCY / CRISIS CHALLENGE</span>
+                      <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px] uppercase font-mono">Top Priority</span>
+                    </span>
+                    <p className="mt-1 text-xs text-red-200/90 leading-relaxed font-mono">
+                      This challenge is marked as an urgent emergency and pinned to the top of all user feeds. Verified solvers can connect and assist immediately.
+                    </p>
                   </div>
                 </div>
               )}
@@ -404,6 +440,16 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
         onClose={() => setIsVerifOpen(false)}
         onSuccess={executeContactSubmission}
       />
+
+      {/* Realtime Chat Room Modal */}
+      {post && (
+        <ChatRoomModal
+          postId={post.id}
+          postTitle={post.title}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </>
   );
 };

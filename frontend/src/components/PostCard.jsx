@@ -57,14 +57,25 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
   return (
     <>
       {/* Compact Horizontal Bar View */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#0b2240]/85 border border-[#0ea5e9]/35 hover:border-[#38bdf8]/70 transition-all duration-300 backdrop-blur-xl shadow-xl group">
+      <div className={`p-4 sm:p-5 rounded-2xl transition-all duration-300 backdrop-blur-xl shadow-xl group ${
+        post.is_emergency
+          ? 'bg-gradient-to-r from-red-950/40 via-[#0b2240]/90 to-[#0b2240]/90 border-2 border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.25)] hover:border-red-400'
+          : 'bg-[#0b2240]/85 border border-[#0ea5e9]/35 hover:border-[#38bdf8]/70'
+      }`}>
         <div className="flex items-center justify-between gap-4">
 
           {/* Left Column: Post Content Snippet */}
           <div className="flex-1 min-w-0 text-left">
 
-            {/* Header Strip: Author, Badges, Date, Solver Req, Status Tag */}
+            {/* Header Strip: Emergency, Author, Badges, Date, Solver Req, Status Tag */}
             <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+              {post.is_emergency && (
+                <span className="px-2.5 py-0.5 rounded-full bg-red-600/30 text-red-300 border border-red-500 text-[10px] font-mono font-black tracking-wider flex items-center gap-1.5 shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]" />
+                  <span>🚨 EMERGENCY CRISIS</span>
+                </span>
+              )}
+
               <span className="text-xs font-semibold text-[#f0f9ff] flex items-center gap-1.5 truncate">
                 <span>{post.author_name || post.authorName || 'Verified Author'}</span>
                 <UserBadge user={{ account_type: post.author_account_type, email: post.author_email }} size="xs" />
