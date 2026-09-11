@@ -139,10 +139,10 @@ const FeedPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1931] text-[#F6FAFD] selection:bg-[#1A3D63]/30 selection:text-[#F6FAFD] cyber-grid relative">
+    <div className="min-h-screen bg-[#06142e] text-[#f0f9ff] selection:bg-[#0b2240]/30 selection:text-[#f0f9ff] cyber-grid relative">
       {/* Background ambient lighting */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#1A3D63]/15 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[600px] h-[400px] bg-[#1A3D63]/25 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#0ea5e9]/20 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[600px] h-[400px] bg-[#38bdf8]/20 rounded-full blur-[160px] pointer-events-none" />
 
       {/* Top Navigation */}
       <Navbar />
@@ -151,24 +151,24 @@ const FeedPage = () => {
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-28 pb-32">
         
         {/* Feed Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#1A3D63]/30 pb-6">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#0ea5e9]/30 pb-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A3D63]/80 border border-[#1A3D63]/40 text-[#B3CFE5] text-xs font-mono uppercase tracking-wider mb-3 shadow-md backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0b2240]/80 border border-[#0ea5e9]/35 text-[#38bdf8] text-xs font-mono uppercase tracking-wider mb-3 shadow-md backdrop-blur-md">
               {isMyIdeas ? (
-                <Lightbulb className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                <Lightbulb className="w-3.5 h-3.5 text-[#38bdf8]" />
               ) : isMyPosts ? (
-                <Layers className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                <Layers className="w-3.5 h-3.5 text-[#38bdf8]" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#38bdf8]" />
               )}
               <span>{isMyIdeas ? 'Accepted Solutions' : isMyPosts ? 'Author Dashboard' : 'Verified Challenge Feed'}</span>
             </div>
 
-            <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#F6FAFD] tracking-tight flex items-center gap-3">
+            <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#f0f9ff] tracking-tight flex items-center gap-3">
               {getHeaderTitle()}
             </h1>
             
-            <p className="text-sm text-[#B3CFE5] mt-1 max-w-xl">
+            <p className="text-sm text-[#38bdf8] mt-1 max-w-xl">
               {getHeaderSubtext()}
             </p>
           </div>
@@ -179,9 +179,9 @@ const FeedPage = () => {
               <button
                 type="button"
                 onClick={() => navigate('/feed')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A3D63] hover:bg-[#244b78] border border-[#1A3D63]/40 text-[#B3CFE5] hover:text-[#F6FAFD] text-xs font-semibold transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0b2240] hover:bg-[#143d6e] border border-[#0ea5e9]/35 text-[#38bdf8] hover:text-[#f0f9ff] text-xs font-semibold transition-all shadow-md"
               >
-                <ArrowLeft className="w-4 h-4 text-[#B3CFE5]" />
+                <ArrowLeft className="w-4 h-4 text-[#38bdf8]" />
                 <span>Back to Live Feed</span>
               </button>
             </div>
@@ -190,23 +190,23 @@ const FeedPage = () => {
 
         {/* Dynamic Live Filter Controls */}
         {!isFiltered && (
-          <div className="mb-6 p-4 rounded-2xl bg-[#1A3D63]/80 border border-[#1A3D63]/40 backdrop-blur-xl shadow-lg space-y-3">
+          <div className="mb-6 p-4 rounded-2xl bg-[#0b2240]/80 border border-[#0ea5e9]/35 backdrop-blur-xl shadow-lg space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Search by Keywords */}
               <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
                 <input
                   type="text"
                   placeholder="Search challenges by title, description, or organization..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931]/80 border border-[#1A3D63]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B3CFE5]/60 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#38bdf8]/60 hover:text-white"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -219,22 +219,22 @@ const FeedPage = () => {
                   <select
                     value={selectedRoleFilter}
                     onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#0A1931]/80 border border-[#1A3D63]/40 rounded-xl text-xs text-[#F6FAFD] focus:outline-none focus:border-[#B3CFE5] font-mono cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] focus:outline-none focus:border-[#38bdf8] font-mono cursor-pointer"
                   >
-                    <option value="" className="bg-[#0A1931] text-[#F6FAFD]">All Roles / Skills</option>
+                    <option value="" className="bg-[#06142e] text-[#f0f9ff]">All Roles / Skills</option>
                     {/* First list roles present in active posts */}
                     {activePostRoles.length > 0 && (
-                      <optgroup label="Active in Feed" className="bg-[#0A1931] text-[#B3CFE5] font-bold">
+                      <optgroup label="Active in Feed" className="bg-[#06142e] text-[#38bdf8] font-bold">
                         {activePostRoles.map(r => (
-                          <option key={`active_${r}`} value={r} className="bg-[#0A1931] text-[#F6FAFD]">
+                          <option key={`active_${r}`} value={r} className="bg-[#06142e] text-[#f0f9ff]">
                             {r}
                           </option>
                         ))}
                       </optgroup>
                     )}
-                    <optgroup label="All Roles Directory" className="bg-[#0A1931] text-[#B3CFE5] font-bold">
+                    <optgroup label="All Roles Directory" className="bg-[#06142e] text-[#38bdf8] font-bold">
                       {AVAILABLE_ROLES.filter(r => !activePostRoles.includes(r)).map(r => (
-                        <option key={`all_${r}`} value={r} className="bg-[#0A1931] text-[#F6FAFD]">
+                        <option key={`all_${r}`} value={r} className="bg-[#06142e] text-[#f0f9ff]">
                           {r}
                         </option>
                       ))}
@@ -247,14 +247,14 @@ const FeedPage = () => {
                   <select
                     value={progressFilter}
                     onChange={(e) => setProgressFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#0A1931]/80 border border-[#1A3D63]/40 rounded-xl text-xs text-[#F6FAFD] focus:outline-none focus:border-[#B3CFE5] font-mono cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] focus:outline-none focus:border-[#38bdf8] font-mono cursor-pointer"
                   >
-                    <option value="all" className="bg-[#0A1931]">All Progress</option>
-                    <option value="lt25" className="bg-[#0A1931]">Under 25% (Just Started)</option>
-                    <option value="25to50" className="bg-[#0A1931]">25% - 50% (In Progress)</option>
-                    <option value="50to75" className="bg-[#0A1931]">50% - 75% (Advancing)</option>
-                    <option value="gt75" className="bg-[#0A1931]">75%+ (Near Completion)</option>
-                    <option value="completed" className="bg-[#0A1931]">100% (Completed)</option>
+                    <option value="all" className="bg-[#06142e]">All Progress</option>
+                    <option value="lt25" className="bg-[#06142e]">Under 25% (Just Started)</option>
+                    <option value="25to50" className="bg-[#06142e]">25% - 50% (In Progress)</option>
+                    <option value="50to75" className="bg-[#06142e]">50% - 75% (Advancing)</option>
+                    <option value="gt75" className="bg-[#06142e]">75%+ (Near Completion)</option>
+                    <option value="completed" className="bg-[#06142e]">100% (Completed)</option>
                   </select>
                 </div>
 
@@ -274,21 +274,21 @@ const FeedPage = () => {
             </div>
 
             {/* Active Filters Pill Bar & Results Count */}
-            <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[#1A3D63]/20 text-xs font-mono">
+            <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[#0ea5e9]/25 text-xs font-mono">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[#B3CFE5]/60 text-[11px]">Filtered by:</span>
+                <span className="text-[#38bdf8]/60 text-[11px]">Filtered by:</span>
                 {selectedRoleFilter ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#0A1931] border border-red-500/50 text-red-300 text-[11px]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#06142e] border border-red-500/50 text-red-300 text-[11px]">
                     <span>Role: {selectedRoleFilter}</span>
                     <button type="button" onClick={() => setSelectedRoleFilter('')} className="hover:text-white">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ) : (
-                  <span className="text-[#F6FAFD]/80 text-[11px]">Any Role</span>
+                  <span className="text-[#f0f9ff]/80 text-[11px]">Any Role</span>
                 )}
                 {progressFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#0A1931] border border-red-500/50 text-red-300 text-[11px]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#06142e] border border-red-500/50 text-red-300 text-[11px]">
                     <span>
                       Progress: {
                         progressFilter === 'lt25' ? '< 25%' :
@@ -304,7 +304,7 @@ const FeedPage = () => {
                 )}
               </div>
 
-              <span className="text-[#B3CFE5]/70 text-[11px]">
+              <span className="text-[#38bdf8]/70 text-[11px]">
                 Showing {filteredPosts.length} of {posts.length} challenges
               </span>
             </div>
@@ -313,8 +313,8 @@ const FeedPage = () => {
 
         {/* Posts List or Centered Empty State */}
         {loadingPosts ? (
-          <div className="py-20 text-center text-[#B3CFE5] font-mono text-xs flex items-center justify-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#B3CFE5] animate-ping" />
+          <div className="py-20 text-center text-[#38bdf8] font-mono text-xs flex items-center justify-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] animate-ping" />
             <span>Loading challenge records...</span>
           </div>
         ) : filteredPosts.length > 0 ? (
@@ -335,9 +335,9 @@ const FeedPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveChatPost({ id: post.id, title: post.title })}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A3D63] hover:bg-[#244b78] border border-[#1A3D63]/40 text-[#F6FAFD] text-xs font-bold transition-all shadow-md"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0b2240] hover:bg-[#143d6e] border border-[#0ea5e9]/35 text-[#f0f9ff] text-xs font-bold transition-all shadow-md"
                     >
-                      <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+                      <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
                       <span>Open Realtime Chat Room</span>
                     </button>
                   </div>
@@ -346,16 +346,16 @@ const FeedPage = () => {
             ))}
           </div>
         ) : (
-          <div className="py-20 px-6 rounded-3xl bg-[#1A3D63]/80 border border-[#1A3D63]/30 text-center backdrop-blur-xl flex flex-col items-center justify-center my-8 shadow-xl">
-            <div className="w-16 h-16 rounded-2xl bg-[#1A3D63]/20 border border-[#1A3D63]/40 flex items-center justify-center text-[#B3CFE5] mb-4">
+          <div className="py-20 px-6 rounded-3xl bg-[#0b2240]/80 border border-[#0ea5e9]/30 text-center backdrop-blur-xl flex flex-col items-center justify-center my-8 shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-[#0b2240]/20 border border-[#0ea5e9]/35 flex items-center justify-center text-[#38bdf8] mb-4">
               {isMyIdeas ? (
-                <Lightbulb className="w-8 h-8 text-[#B3CFE5]" />
+                <Lightbulb className="w-8 h-8 text-[#38bdf8]" />
               ) : (
-                <Layers className="w-8 h-8 text-[#B3CFE5]" />
+                <Layers className="w-8 h-8 text-[#38bdf8]" />
               )}
             </div>
 
-            <h3 className="font-['Outfit'] font-bold text-xl text-[#F6FAFD] mb-2">
+            <h3 className="font-['Outfit'] font-bold text-xl text-[#f0f9ff] mb-2">
               {isAnyFilterActive
                 ? 'No Challenges Match Your Filter Criteria'
                 : isMyPosts
@@ -365,7 +365,7 @@ const FeedPage = () => {
                 : 'No Posts Yet'}
             </h3>
 
-            <p className="text-sm text-[#B3CFE5] max-w-md mx-auto mb-6 leading-relaxed">
+            <p className="text-sm text-[#38bdf8] max-w-md mx-auto mb-6 leading-relaxed">
               {isAnyFilterActive
                 ? 'Try adjusting your role or progress filters to see more challenges.'
                 : isMyPosts
@@ -379,7 +379,7 @@ const FeedPage = () => {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="px-5 py-2.5 rounded-full bg-[#0A1931] hover:bg-[#1A3D63] text-xs font-semibold text-[#B3CFE5] border border-[#1A3D63]/40 transition-colors"
+                className="px-5 py-2.5 rounded-full bg-[#06142e] hover:bg-[#0b2240] text-xs font-semibold text-[#38bdf8] border border-[#0ea5e9]/35 transition-colors"
               >
                 Clear All Filters
               </button>
@@ -387,7 +387,7 @@ const FeedPage = () => {
               <button
                 type="button"
                 onClick={() => navigate('/feed')}
-                className="px-5 py-2.5 rounded-full bg-[#0A1931] hover:bg-[#1A3D63] text-xs font-semibold text-[#B3CFE5] border border-[#1A3D63]/40 transition-colors"
+                className="px-5 py-2.5 rounded-full bg-[#06142e] hover:bg-[#0b2240] text-xs font-semibold text-[#38bdf8] border border-[#0ea5e9]/35 transition-colors"
               >
                 View Public Live Feed
               </button>

@@ -19,7 +19,7 @@ const Hero = () => {
   return (
     <section 
       id="hero" 
-      className="relative min-h-screen pt-20 pb-16 flex items-center overflow-hidden bg-[#0A1931]"
+      className="relative min-h-screen pt-20 pb-16 flex items-center overflow-hidden bg-[#06142e]"
     >
       {/* Background Image with Right Alignment */}
       <div 
@@ -27,7 +27,7 @@ const Hero = () => {
         style={{ backgroundImage: "url('/background.png')" }}
       >
         {/* Horizontal Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A1931]/85 via-[#0A1931]/50 to-[#0A1931]/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#06142e]/85 via-[#06142e]/50 to-[#06142e]/10" />
       </div>
 
       {/* Main Container - Pushed closer to the left edge (24px to 40px padding) */}
@@ -37,18 +37,18 @@ const Hero = () => {
           
           {/* Top Innovation Pill Badge */}
           <Reveal animation="fade-down" delay={100}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1A3D63]/90 border border-[#1A3D63]/40 text-[#B3CFE5] text-xs sm:text-sm font-medium mb-6 shadow-[0_0_20px_rgba(74, 127, 167,0.2)] backdrop-blur-md">
-              <span className="flex h-2 w-2 rounded-full bg-[#B3CFE5] animate-ping" />
-              <Sparkles className="w-4 h-4 text-[#B3CFE5]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0b2240]/90 border border-[#0ea5e9]/35 text-[#38bdf8] text-xs sm:text-sm font-medium mb-6 shadow-[0_0_20px_rgba(14, 165, 233, 0.25)] backdrop-blur-md">
+              <span className="flex h-2 w-2 rounded-full bg-[#38bdf8] animate-ping" />
+              <Sparkles className="w-4 h-4 text-[#38bdf8]" />
               <span>Bridging Tough Challenges With Verified Brainpower</span>
             </div>
           </Reveal>
 
           {/* Left-Aligned Headline */}
           <Reveal animation="fade-up" delay={200}>
-            <h1 className="font-['Outfit'] font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-[#F6FAFD] leading-[1.12] mb-6">
+            <h1 className="font-['Outfit'] font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-[#f0f9ff] leading-[1.12] mb-6">
               Turning Real-World <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A3D63] via-[#B3CFE5] to-[#F6FAFD]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0b2240] via-[#38bdf8] to-[#f0f9ff]">
                 Tough Challenges
               </span>{' '}
               Into Solutions
@@ -57,7 +57,7 @@ const Hero = () => {
 
           {/* Left-Aligned Subtext (max-width ~500px) */}
           <Reveal animation="fade-up" delay={300}>
-            <p className="text-base sm:text-lg text-[#B3CFE5] font-normal max-w-[500px] leading-relaxed mb-8">
+            <p className="text-base sm:text-lg text-[#38bdf8] font-normal max-w-[500px] leading-relaxed mb-8">
               A trusted platform connecting organizations, teams, and problem creators with verified researchers and industry specialists to solve technical, operational, and community challenges together.
             </p>
           </Reveal>
@@ -75,10 +75,10 @@ const Hero = () => {
 
               <a
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#1A3D63]/80 hover:bg-[#244b78] border border-[#1A3D63]/40 text-[#F6FAFD] font-['Outfit'] font-semibold text-sm sm:text-base transition-all hover:border-[#1A3D63]/70 shadow-lg"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#0b2240]/80 hover:bg-[#143d6e] border border-[#0ea5e9]/35 text-[#f0f9ff] font-['Outfit'] font-semibold text-sm sm:text-base transition-all hover:border-[#0ea5e9]/40/70 shadow-lg"
               >
                 <span>Explore Process</span>
-                <ArrowUpRight className="w-4 h-4 text-[#B3CFE5]" />
+                <ArrowUpRight className="w-4 h-4 text-[#38bdf8]" />
               </a>
             </div>
           </Reveal>

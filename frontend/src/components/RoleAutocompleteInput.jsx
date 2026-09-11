@@ -88,12 +88,12 @@ const RoleAutocompleteInput = ({
   return (
     <div className={`space-y-2 ${className}`} ref={containerRef}>
       {label && (
-        <label className="block text-xs font-semibold text-[#B3CFE5] uppercase tracking-wider flex items-center justify-between">
+        <label className="block text-xs font-semibold text-[#38bdf8] uppercase tracking-wider flex items-center justify-between">
           <span className="flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-[#B3CFE5]" />
+            <Tag className="w-3.5 h-3.5 text-[#38bdf8]" />
             <span>{label}</span>
           </span>
-          <span className="text-[10px] text-[#B3CFE5]/70 font-mono font-normal">
+          <span className="text-[10px] text-[#38bdf8]/70 font-mono font-normal">
             {selectedRoles.length}/{maxRoles} selected
           </span>
         </label>
@@ -101,17 +101,17 @@ const RoleAutocompleteInput = ({
 
       {/* Selected Pills */}
       {selectedRoles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-[#0A1931]/80 border border-[#1A3D63]/40 min-h-[38px] items-center">
+        <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-[#06142e]/80 border border-[#0ea5e9]/35 min-h-[38px] items-center">
           {selectedRoles.map((role) => (
             <span
               key={role}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1A3D63] border border-[#1A3D63]/60 text-xs font-mono text-[#F6FAFD] shadow-sm animate-fade-in"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0b2240] border border-[#0ea5e9]/60 text-xs font-mono text-[#f0f9ff] shadow-sm animate-fade-in"
             >
               <span>{role}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveRole(role)}
-                className="text-[#B3CFE5]/70 hover:text-red-400 p-0.5 rounded transition-colors"
+                className="text-[#38bdf8]/70 hover:text-red-400 p-0.5 rounded transition-colors"
                 title="Remove role"
               >
                 <X className="w-3 h-3" />
@@ -134,13 +134,13 @@ const RoleAutocompleteInput = ({
           }}
           placeholder={selectedRoles.length >= maxRoles ? `Max ${maxRoles} roles selected` : placeholder}
           disabled={selectedRoles.length >= maxRoles}
-          className="w-full px-3.5 py-2.5 bg-[#0A1931]/90 border border-[#1A3D63]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors font-mono disabled:opacity-50"
+          className="w-full px-3.5 py-2.5 bg-[#06142e]/90 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono disabled:opacity-50"
         />
 
         {/* Autocomplete Dropdown */}
         {isOpen && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto bg-[#0A1931]/95 border-2 border-red-500/40 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-1.5">
-            <div className="px-2 py-1 text-[10px] font-mono text-[#B3CFE5]/70 uppercase tracking-wider border-b border-[#1A3D63]/30 mb-1 flex items-center justify-between">
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto bg-[#06142e]/95 border-2 border-red-500/40 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-1.5">
+            <div className="px-2 py-1 text-[10px] font-mono text-[#38bdf8]/70 uppercase tracking-wider border-b border-[#0ea5e9]/30 mb-1 flex items-center justify-between">
               <span>Matching Roles ({suggestions.length})</span>
               <span className="text-[9px]">Press Enter or Click</span>
             </div>
@@ -155,11 +155,11 @@ const RoleAutocompleteInput = ({
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono flex items-center justify-between transition-colors ${
                     isHighlighted 
                       ? 'bg-gradient-to-r from-red-600/80 to-red-800/80 text-white font-bold' 
-                      : 'text-[#F6FAFD] hover:bg-[#1A3D63]/50'
+                      : 'text-[#f0f9ff] hover:bg-[#0b2240]/50'
                   }`}
                 >
                   <span>{item}</span>
-                  <Plus className={`w-3.5 h-3.5 ${isHighlighted ? 'text-white' : 'text-[#B3CFE5]/70'}`} />
+                  <Plus className={`w-3.5 h-3.5 ${isHighlighted ? 'text-white' : 'text-[#38bdf8]/70'}`} />
                 </button>
               );
             })}
