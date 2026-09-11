@@ -62,30 +62,30 @@ const UploadVerificationModal = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 bg-[#935073]/95 border border-[#935073]/40 rounded-3xl shadow-[0_0_50px_rgba(147, 80, 115,0.3)] text-[#F8F4E9] backdrop-blur-2xl">
+      <div className="relative w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 bg-[#1A3D63]/95 border border-[#1A3D63]/40 rounded-3xl shadow-[0_0_50px_rgba(74, 127, 167,0.3)] text-[#F6FAFD] backdrop-blur-2xl">
         
         {/* Glow ambient */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#935073]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#1A3D63]/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 text-[#F6DBC0] hover:text-[#F8F4E9] rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+          className="absolute top-6 right-6 p-2 text-[#B3CFE5] hover:text-[#F6FAFD] rounded-full bg-white/5 hover:bg-white/10 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-[#935073]/20 border border-[#935073]/40 flex items-center justify-center text-[#F6DBC0]">
+          <div className="w-10 h-10 rounded-xl bg-[#1A3D63]/20 border border-[#1A3D63]/40 flex items-center justify-center text-[#B3CFE5]">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-bold font-['Outfit'] text-[#F8F4E9]">Verification Document Required</h3>
-            <p className="text-xs text-[#F6DBC0] font-mono tracking-wider uppercase">CollabX Trust Architecture</p>
+            <h3 className="text-xl font-bold font-['Outfit'] text-[#F6FAFD]">Verification Document Required</h3>
+            <p className="text-xs text-[#B3CFE5] font-mono tracking-wider uppercase">CollabX Trust Architecture</p>
           </div>
         </div>
 
-        <p className="text-xs text-[#F6DBC0] mb-6 leading-relaxed">
+        <p className="text-xs text-[#B3CFE5] mb-6 leading-relaxed">
           Before contacting problem posters, you must upload institutional verification proof (university badge, ORCID token, or research letterhead). Your document is securely stored and only accessible to post authors during review.
         </p>
 
@@ -97,14 +97,14 @@ const UploadVerificationModal = ({ isOpen, onClose, onSuccess }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#502D55]/80 border border-dashed border-[#935073]/40 flex flex-col items-center justify-center text-center">
-            <Upload className="w-8 h-8 text-[#F6DBC0] mb-2" />
-            <p className="text-xs font-semibold text-[#F8F4E9]">
+          <div className="p-4 rounded-2xl bg-[#0A1931]/80 border border-dashed border-[#1A3D63]/40 flex flex-col items-center justify-center text-center">
+            <Upload className="w-8 h-8 text-[#B3CFE5] mb-2" />
+            <p className="text-xs font-semibold text-[#F6FAFD]">
               {fileName || 'Select Institutional Verification PDF / Image'}
             </p>
-            <p className="text-[10px] text-[#F6DBC0]/70 mt-1">PDF, PNG, JPG up to 10MB</p>
+            <p className="text-[10px] text-[#B3CFE5]/70 mt-1">PDF, PNG, JPG up to 10MB</p>
 
-            <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#935073] hover:bg-[#244b78] border border-[#935073]/40 text-xs font-medium text-[#F6DBC0] cursor-pointer transition-colors">
+            <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A3D63] hover:bg-[#244b78] border border-[#1A3D63]/40 text-xs font-medium text-[#B3CFE5] cursor-pointer transition-colors">
               <span>{fileName ? 'Choose Different File' : 'Browse Document'}</span>
               <input
                 type="file"

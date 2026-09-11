@@ -99,6 +99,17 @@ const Navbar = () => {
     navigate('/my-ideas');
   };
 
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    const session = localStorage.getItem('collabx_session');
+    if (currentUser || session) {
+      setFeedFilter('all');
+      navigate('/feed');
+    } else {
+      navigate('/');
+    }
+  };
+
   const handleNotifClick = (n) => {
     setShowNotifMenu(false);
     setSelectedNotif(n);
@@ -110,6 +121,8 @@ const Navbar = () => {
       if (pId) {
         setDetailModalPostId(pId);
       }
+    } else if (n.type === 'chat_message') {
+      navigate('/messages');
     }
   };
 
@@ -136,7 +149,11 @@ const Navbar = () => {
           }`}
         >
           {/* Brand Logo */}
-          <Link to={currentUser ? "/feed" : "/"} className="flex items-center gap-2.5 group">
+          <Link
+            to={currentUser ? "/feed" : "/"}
+            onClick={handleLogoClick}
+            className="flex items-center gap-2.5 group cursor-pointer"
+          >
             <div className="relative flex items-center justify-center w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#4A7FA7] via-[#1A3D63] to-[#B3CFE5] p-[1.5px] shadow-lg shadow-[#4A7FA7]/25">
               <div className="w-full h-full bg-[#0A1931] rounded-[10px] flex items-center justify-center">
                 <svg
@@ -221,9 +238,9 @@ const Navbar = () => {
                 >
                   <Bell className="w-5 h-5 text-[#B3CFE5]" />
                   
-                  {/* Unread Glowing Dot — excludes chat_message type */}
-                  {notifications.filter(n => !n.read && n.type !== 'chat_message').length > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
+                  {/* Unread Glowing Dot — shows when any unread notification exists */}
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse" />
                   )}
                 </button>
 
@@ -233,19 +250,19 @@ const Navbar = () => {
                     <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#4A7FA7]/30">
                       <span className="font-bold text-[#F6FAFD] font-['Outfit'] text-sm">Notifications</span>
                       <span className="text-[10px] font-mono text-[#B3CFE5] font-semibold uppercase">
-                        {notifications.filter(n => n.type !== 'chat_message').length} Total
+                        {notifications.length} Total
                       </span>
                     </div>
 
-                    {notifications.filter(n => n.type !== 'chat_message').length > 0 ? (
+                    {notifications.length > 0 ? (
                       <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                        {notifications.filter(n => n.type !== 'chat_message').map((n) => (
+                        {notifications.map((n) => (
                           <div
                             key={n.id}
                             onClick={() => handleNotifClick(n)}
                             className="p-2.5 rounded-xl bg-[#0A1931]/80 hover:bg-[#4A7FA7]/20 border border-[#4A7FA7]/30 flex items-start gap-2.5 cursor-pointer transition-colors"
                           >
-                            <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${n.read ? 'bg-[#4A7FA7]/50' : 'bg-[#B3CFE5]'}`} />
+                            <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${n.read ? 'bg-[#4A7FA7]/50' : 'bg-red-400 shadow-[0_0_6px_#f87171]'}`} />
                             <div className="flex-1">
                               <p className="text-[#F6FAFD] font-medium leading-snug">
                                 {n.message || n.payload?.message || 'New Notification'}
