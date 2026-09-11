@@ -344,11 +344,18 @@ const MessagesPage = () => {
                 ) : (
                   rooms.map((room) => {
                     const isActive = selectedRoom?.room_id === room.room_id;
+                    const cleanRoomId = room.room_id ? room.room_id.replace('room_', '') : '';
+                    const cleanPostId = room.post_id ? room.post_id.replace('room_', '') : '';
                     const unreadRoomCount = notifications.filter(
                       (n) =>
                         !n.read &&
                         n.type === 'chat_message' &&
-                        (n.payload?.room_id === room.room_id || n.payload?.roomId === room.room_id)
+                        (n.payload?.room_id === room.room_id ||
+                         n.payload?.roomId === room.room_id ||
+                         n.payload?.room_id === cleanRoomId ||
+                         n.payload?.roomId === cleanRoomId ||
+                         n.payload?.post_id === cleanPostId ||
+                         n.payload?.post_id === cleanRoomId)
                     ).length;
 
                     return (
