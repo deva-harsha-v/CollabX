@@ -85,6 +85,102 @@ const setLocal = (key, val) => {
 };
 
 /**
+ * Global synchronization of all deleted post IDs across Supabase & all browsers
+ */
+export async function getGlobalDeletedPostIds() {
+  const localDeleted = getLocal('collabx_deleted_post_ids', []);
+  const deletedSet = new Set(localDeleted);
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('payload')
+        .eq('type', 'admin_post_removed');
+
+      if (Array.isArray(notifs)) {
+        notifs.forEach(n => {
+          const pId = n.payload?.post_id || n.payload?.postId;
+          if (pId) deletedSet.add(pId);
+        });
+      }
+    } catch (e) {
+      console.warn('[storage] getGlobalDeletedPostIds query error:', e);
+    }
+  }
+
+  const combined = Array.from(deletedSet);
+  setLocal('collabx_deleted_post_ids', combined);
+  return combined;
+}
+
+/**
+ * Synchronize deleted posts & purge their associated chatrooms on author/user devices
+ */
+export async function syncDeletedPostsForUser(currentUser) {
+  if (!currentUser) return;
+  const deletedIds = await getGlobalDeletedPostIds();
+  if (!deletedIds || deletedIds.length === 0) return;
+
+  // 1. Clean local storage posts for author & others
+  const localPosts = getLocal(LOCAL_POSTS, []);
+  let changedPosts = false;
+  const updatedLocal = localPosts.map(p => {
+    if (deletedIds.includes(p.id) && p.status !== 'deleted') {
+      changedPosts = true;
+      return { ...p, status: 'deleted' };
+    }
+    return p;
+  });
+  if (changedPosts) {
+    setLocal(LOCAL_POSTS, updatedLocal);
+  }
+
+  // 2. Hide / purge chat rooms assigned to deleted posts
+  const localRooms = getLocal(LOCAL_CHAT_ROOMS, []);
+  const updatedRooms = localRooms.filter(r => !deletedIds.includes(r.id) && !deletedIds.includes(r.post_id));
+  if (updatedRooms.length !== localRooms.length) {
+    setLocal(LOCAL_CHAT_ROOMS, updatedRooms);
+  }
+
+  // Hide rooms in per-user deleted rooms map
+  const deletedMap = getLocal(`collabx_deleted_rooms_${currentUser.id}`, {});
+  let changedMap = false;
+  deletedIds.forEach(id => {
+    if (!deletedMap[id]) {
+      deletedMap[id] = Date.now();
+      deletedMap[`room_${id}`] = Date.now();
+      changedMap = true;
+    }
+  });
+  if (changedMap) {
+    setLocal(`collabx_deleted_rooms_${currentUser.id}`, deletedMap);
+  }
+
+  // 3. If logged into Supabase on author's machine, execute author update
+  if (isSupabaseConfigured) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        for (const pId of deletedIds) {
+          try {
+            await supabase
+              .from('posts')
+              .update({ status: 'deleted' })
+              .eq('id', pId)
+              .eq('author_id', authData.user.id);
+          } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('collabx_rooms_update'));
+  }
+}
+
+/**
  * Auth: Get current session user
  */
 export async function getCurrentUser() {
@@ -467,7 +563,7 @@ export function cleanPostSkills(skills) {
  * Fetch Public Feed (ONLY 'live' challenges — NEVER shows completed or deleted posts)
  */
 export async function getAllPosts() {
-  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  const deletedIds = await getGlobalDeletedPostIds();
 
   if (isSupabaseConfigured) {
     try {
@@ -666,7 +762,7 @@ export async function getPostDetails(postId) {
  * Fetch "My Posts" (Author view - includes live & completed posts, excludes soft-deleted)
  */
 export async function getPostsByUser(userId) {
-  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  const deletedIds = await getGlobalDeletedPostIds();
 
   if (isSupabaseConfigured) {
     try {
@@ -709,7 +805,7 @@ export async function getPostsByUser(userId) {
  * Fetch "My Ideas" (Posts where user is an accepted solver and status != 'deleted')
  */
 export async function getMyIdeas() {
-  const deletedIds = getLocal('collabx_deleted_post_ids', []);
+  const deletedIds = await getGlobalDeletedPostIds();
 
   if (isSupabaseConfigured) {
     try {
@@ -1833,13 +1929,25 @@ export async function getAccessibleChatRooms() {
     }
   });
 
-  // Apply per-user deletion filtering
+  // Apply per-user deletion filtering & globally deleted post filtering
+  const globalDeletedIds = await getGlobalDeletedPostIds();
   const deletedMap = currentUserId ? getLocal(`collabx_deleted_rooms_${currentUserId}`, {}) : {};
   const allLocalMsgs = getLocal(LOCAL_CHAT_MSGS, []);
 
   const visibleRooms = Array.from(accessibleRoomsMap.values()).filter(r => {
     const cleanId = r.room_id ? r.room_id.replace('room_', '') : '';
     const cleanPostId = r.post_id ? r.post_id.replace('room_', '') : '';
+
+    // If post was deleted globally by admin or author, remove room for EVERYONE
+    if (
+      globalDeletedIds.includes(r.post_id) || 
+      globalDeletedIds.includes(cleanPostId) || 
+      globalDeletedIds.includes(r.room_id) || 
+      globalDeletedIds.includes(cleanId)
+    ) {
+      return false;
+    }
+
     const deletedTimestamp = deletedMap[r.room_id] || deletedMap[cleanId] || deletedMap[r.post_id] || deletedMap[cleanPostId];
 
     if (!deletedTimestamp) return true;
@@ -2302,22 +2410,30 @@ export async function getAllAdminChatRooms() {
     }
   });
 
-  // Compute message count for each room
-  const finalRooms = Array.from(roomsMap.values()).map(r => {
-    const cleanId = (r.post_id || r.id).replace('room_', '');
-    const count = allMergedMsgs.filter(m => 
-      m.chat_room_id === r.id || 
-      m.chat_room_id === r.post_id || 
-      m.chat_room_id === cleanId || 
-      m.chat_room_id === `room_${r.id}` || 
-      m.chat_room_id === `room_${cleanId}`
-    ).length;
+  const globalDeletedIds = await getGlobalDeletedPostIds();
 
-    return {
-      ...r,
-      message_count: count,
-    };
-  });
+  // Compute message count for each room and filter out deleted posts
+  const finalRooms = Array.from(roomsMap.values())
+    .filter(r => {
+      const cleanId = (r.post_id || r.id).replace('room_', '');
+      const isDeleted = globalDeletedIds.includes(r.id) || globalDeletedIds.includes(r.post_id) || globalDeletedIds.includes(cleanId) || r.posts?.status === 'deleted';
+      return !isDeleted;
+    })
+    .map(r => {
+      const cleanId = (r.post_id || r.id).replace('room_', '');
+      const count = allMergedMsgs.filter(m => 
+        m.chat_room_id === r.id || 
+        m.chat_room_id === r.post_id || 
+        m.chat_room_id === cleanId || 
+        m.chat_room_id === `room_${r.id}` || 
+        m.chat_room_id === `room_${cleanId}`
+      ).length;
+
+      return {
+        ...r,
+        message_count: count,
+      };
+    });
 
   return { data: finalRooms, error: null };
 }

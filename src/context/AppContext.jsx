@@ -8,7 +8,8 @@ import {
   markChatRoomNotificationsRead,
   createPost as apiCreatePost,
   getPostsByUser,
-  getMyIdeas
+  getMyIdeas,
+  syncDeletedPostsForUser
 } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
@@ -28,10 +29,16 @@ export const AppProvider = ({ children }) => {
     setLoadingUser(true);
     const { data } = await getCurrentUser();
     setCurrentUser(data);
+    if (data) {
+      await syncDeletedPostsForUser(data);
+    }
     setLoadingUser(false);
   }, []);
 
   const refreshPosts = useCallback(async () => {
+    if (currentUser) {
+      await syncDeletedPostsForUser(currentUser);
+    }
     if (feedFilter === 'my_posts' && currentUser?.id) {
       const { data } = await getPostsByUser(currentUser.id);
       setPosts(data || []);
