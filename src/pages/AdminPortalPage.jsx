@@ -23,8 +23,12 @@ import {
   Building2,
   Calendar,
   Tag,
-  Lightbulb
+  Lightbulb,
+  ArrowRight,
+  Sparkles,
+  Lock
 } from 'lucide-react';
+import LogoIcon from '../components/LogoIcon';
 import { 
   getAdminSession, 
   adminSignOut, 
@@ -169,11 +173,7 @@ const AdminPortalPage = () => {
       <header className="sticky top-0 z-40 bg-[#06142e]/95 backdrop-blur-2xl border-b border-[#0ea5e9]/35 shadow-xl px-4 sm:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-[#0b2240] to-[#0b2240] p-[1.5px] shadow-lg shadow-red-500/20">
-              <div className="w-full h-full bg-[#06142e] rounded-[10px] flex items-center justify-center">
-                <ShieldAlert className="w-5 h-5 text-red-400" />
-              </div>
-            </div>
+            <LogoIcon size="md" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-['Outfit'] font-black text-lg text-[#f0f9ff]">

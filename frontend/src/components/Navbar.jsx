@@ -18,6 +18,7 @@ import { useApp } from '../context/AppContext';
 import ContactRequestReviewModal from './ContactRequestReviewModal';
 import PostDetailModal from './PostDetailModal';
 import UserBadge from './UserBadge';
+import LogoIcon from './LogoIcon';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -162,26 +163,7 @@ const Navbar = () => {
             tabIndex={0}
             title="CollabX Live Feed"
           >
-            <div className="relative flex items-center justify-center w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#0ea5e9] via-[#0b2240] to-[#38bdf8] p-[1.5px] shadow-lg shadow-[#0ea5e9]/25">
-              <div className="w-full h-full bg-[#06142e] rounded-[10px] flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-[#38bdf8] group-hover:rotate-12 transition-transform duration-300"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                  <circle cx="12" cy="12" r="2.5" fill="#38bdf8" />
-                  <circle cx="6" cy="6" r="1.5" fill="#0ea5e9" />
-                  <circle cx="18" cy="6" r="1.5" fill="#38bdf8" />
-                  <circle cx="6" cy="18" r="1.5" fill="#38bdf8" />
-                  <circle cx="18" cy="18" r="1.5" fill="#0ea5e9" />
-                </svg>
-              </div>
-            </div>
+            <LogoIcon size="sm" />
             <div className="flex flex-col">
               <span className="font-['Outfit'] font-black text-lg sm:text-xl tracking-tight text-[#f0f9ff] flex items-center">
                 Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8]">X</span>

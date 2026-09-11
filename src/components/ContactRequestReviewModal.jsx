@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, ShieldCheck, Check, XCircle, FileText, ExternalLink, AlertCircle, UserCheck } from 'lucide-react';
+import { X, Check, XCircle, FileText, ExternalLink, AlertCircle, UserCheck } from 'lucide-react';
 import { updateContactRequestStatus, createSignedVerificationUrl } from '../lib/storage';
+import LogoIcon from './LogoIcon';
 
 const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh }) => {
   const [signedDocUrl, setSignedDocUrl] = useState(null);
@@ -18,31 +19,35 @@ const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh })
   // Request time-limited signed URL (60-second expiry)
   const fetchSignedUrl = useCallback(async () => {
     setLoadingDoc(true);
-    setSignedDocUrl(null);
-    const { data } = await createSignedVerificationUrl(solverId);
-    setLoadingDoc(false);
-    if (data) {
-      setSignedDocUrl(data);
+    setErrorMsg('');
+    const { data: url, error } = await createSignedVerificationUrl(solverId, 60);
+    if (error) {
+      setErrorMsg('Failed to generate secure URL: ' + error.message);
     }
+    setSignedDocUrl(url);
+    setLoadingDoc(false);
   }, [solverId]);
 
   useEffect(() => {
     if (isOpen && solverId) {
       fetchSignedUrl();
+    } else {
+      setSignedDocUrl(null);
+      setErrorMsg('');
     }
   }, [isOpen, solverId, fetchSignedUrl]);
 
-  if (!isOpen || !notification) return null;
+  if (!isOpen) return null;
 
   const handleAction = async (status) => {
     setIsSubmitting(true);
     setErrorMsg('');
 
-    const { error } = await updateContactRequestStatus(requestId, status, postId, solverId);
+    const { error } = await updateContactRequestStatus(requestId, status);
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMsg(error.message);
+      setErrorMsg('Update failed: ' + error.message);
       return;
     }
 
@@ -51,8 +56,8 @@ const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 bg-[#0b2240]/95 border border-[#0ea5e9]/35 rounded-3xl shadow-[0_0_60px_rgba(14, 165, 233, 0.35)] text-[#f0f9ff] backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-lg p-6 sm:p-8 bg-[#0b2240]/90 border border-[#0ea5e9]/35 rounded-3xl backdrop-blur-2xl shadow-2xl text-[#f0f9ff]">
         
         {/* Ambient Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#0b2240]/15 rounded-full blur-3xl pointer-events-none" />
@@ -66,9 +71,7 @@ const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh })
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-[#0b2240]/20 border border-[#0ea5e9]/35 flex items-center justify-center text-[#38bdf8]">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
+          <LogoIcon size="md" />
           <div>
             <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">Review Solver Credentials</h3>
             <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">Contact Request Audit</p>

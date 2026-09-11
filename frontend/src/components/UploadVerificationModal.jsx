@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Upload, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
+import { X, Upload, AlertCircle, ArrowRight } from 'lucide-react';
 import { updateVerificationDoc } from '../lib/storage';
 import { useApp } from '../context/AppContext';
+import LogoIcon from './LogoIcon';
 
 const UploadVerificationModal = ({ isOpen, onClose, onSuccess }) => {
   const { currentUser, setCurrentUser } = useApp();
@@ -76,9 +77,7 @@ const UploadVerificationModal = ({ isOpen, onClose, onSuccess }) => {
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-[#0b2240]/20 border border-[#0ea5e9]/35 flex items-center justify-center text-[#38bdf8]">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
+          <LogoIcon size="md" />
           <div>
             <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">Verification Document Required</h3>
             <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">CollabX Trust Architecture</p>

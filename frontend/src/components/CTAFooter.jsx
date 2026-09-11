@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import Reveal from './Reveal';
 import { useApp } from '../context/AppContext';
+import LogoIcon from './LogoIcon';
 
 const CTAFooter = () => {
   const navigate = useNavigate();
@@ -77,11 +78,7 @@ const CTAFooter = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Logo & Team */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0b2240] to-[#38bdf8] p-[1.5px]">
-              <div className="w-full h-full bg-[#06142e] rounded-[10px] flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
-              </div>
-            </div>
+            <LogoIcon size="sm" />
             <div>
               <span className="font-['Outfit'] font-black text-lg text-[#f0f9ff]">
                 Collab<span className="text-[#38bdf8]">X</span>

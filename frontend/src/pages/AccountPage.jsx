@@ -43,13 +43,17 @@ const AccountPage = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     if (!currentUser?.id) return;
-    setProfileErrorMsg('');
-    setProfileSuccessMsg('');
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (phone.trim() && cleanPhone.length !== 10) {
+      setProfileErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
+      return;
+    }
+
     setIsSavingProfile(true);
 
     const { data: updated, error } = await updateUserProfile(currentUser.id, {
       name: name.trim(),
-      phone: phone.trim(),
+      phone: cleanPhone || null,
       avatar: avatarFile || avatarPreview,
       skills,
     });
@@ -225,16 +229,20 @@ const AccountPage = () => {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5">
-                    Phone Number
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5 flex items-center justify-between">
+                    <span>Phone Number</span>
+                    <span className="text-[10px] text-[#38bdf8]/60 font-normal">10 Digits</span>
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
                     <input
                       type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]{10}"
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="9876543210"
                       className="w-full pl-10 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-xs text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
                     />
                   </div>

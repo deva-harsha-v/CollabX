@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound, Phone, Building2, UserCheck, FileCheck, CheckCircle2, RotateCcw } from 'lucide-react';
-import { signUp, signIn, adminSignIn, isValidOrgEmail, resendVerificationEmail } from '../lib/storage';
+import { signUp, signIn, resendVerificationEmail, isValidOrgEmail } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
+import LogoIcon from '../components/LogoIcon';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -138,16 +139,20 @@ const AuthPage = () => {
         }
       }
 
-      // Public Account Validation: Mandatory Phone and Mandatory Document Upload
+      // Phone Number Validation: Mandatory 10 numeric digits for Public accounts, and 10 digits if provided for Org
+      const cleanPhone = phone.replace(/\D/g, '');
       if (accountType === 'public') {
-        if (!phone.trim()) {
-          setErrorMsg('Phone number is mandatory for public accounts.');
+        if (!cleanPhone || cleanPhone.length !== 10) {
+          setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
           return;
         }
         if (!docBase64) {
           setErrorMsg('Official verification document upload is mandatory for public accounts (Aadhaar, Driving License, PAN card, etc.).');
           return;
         }
+      } else if (phone.trim() && cleanPhone.length !== 10) {
+        setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
+        return;
       }
 
       if (password.length < 6) {
@@ -221,14 +226,10 @@ const AuthPage = () => {
 
       {/* Brand Header */}
       <Link to={currentUser ? "/feed" : "/"} className="relative z-10 flex items-center gap-3 mb-8 group">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0b2240] to-[#38bdf8] p-[1.5px] shadow-lg shadow-[#0b2240]/20 group-hover:scale-105 transition-transform duration-300">
-          <div className="w-full h-full bg-[#06142e] rounded-[14px] flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-[#38bdf8] group-hover:rotate-12 transition-transform duration-300" />
-          </div>
-        </div>
+        <LogoIcon size="md" />
         <div className="flex flex-col">
           <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#f0f9ff] flex items-center">
-            Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0b2240] to-[#38bdf8]">X</span>
+            Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8]">X</span>
           </span>
           <span className="text-[9px] uppercase tracking-widest text-[#38bdf8]/80 font-mono -mt-1 font-semibold">Challenge Grid</span>
         </div>
@@ -499,20 +500,24 @@ const AuthPage = () => {
           {mode === 'signup' && (
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-1.5 flex items-center justify-between">
-                <span>Phone Number {accountType === 'public' ? <span className="text-red-400 font-bold">* (Mandatory)</span> : <span className="text-[10px] text-[#38bdf8]/60 font-normal">(Optional)</span>}</span>
-                {accountType === 'public' && <span className="text-[10px] text-red-400 font-mono font-normal">Required for Public Profile</span>}
+                <span>Phone Number {accountType === 'public' ? <span className="text-red-400 font-bold">* (10 Digits)</span> : <span className="text-[10px] text-[#38bdf8]/60 font-normal">(Optional · 10 Digits)</span>}</span>
+                {accountType === 'public' && <span className="text-[10px] text-red-400 font-mono font-normal">Mandatory for Public</span>}
               </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
                 <input
                   type="tel"
                   required={accountType === 'public'}
-                  placeholder="+91 98765 43210 / +1 (555) 000-0000"
+                  placeholder="9876543210"
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   className="w-full pl-10 pr-4 py-3 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
                 />
               </div>
+              <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">Must be exactly 10 numeric digits</p>
             </div>
           )}
 

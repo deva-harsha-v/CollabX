@@ -115,8 +115,9 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       setErrorMsg('Please provide a description of the problem.');
       return;
     }
-    if (!phoneNumber.trim()) {
-      setErrorMsg('Please enter a valid phone number for verification.');
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
       return;
     }
 
@@ -200,7 +201,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
           {/* Phone Number (Required - Gated Privacy) */}
           <div>
             <label className="block text-xs font-semibold text-[#38bdf8] uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Phone Number <span className="text-[#38bdf8]">*</span></span>
+              <span>Phone Number <span className="text-[#38bdf8]">* (10 Digits)</span></span>
               <span className="text-[10px] text-[#38bdf8] font-mono font-normal">🔒 Gated: Hidden until accepted</span>
             </label>
             <div className="relative">
@@ -208,12 +209,16 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               <input
                 type="tel"
                 required
-                placeholder="+1 (555) 000-0000"
+                placeholder="9876543210"
+                maxLength={10}
+                inputMode="numeric"
+                pattern="[0-9]{10}"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors"
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                className="w-full pl-9 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
               />
             </div>
+            <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">Must be exactly 10 numeric digits</p>
           </div>
 
           {/* Description (Required) */}
