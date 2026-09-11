@@ -13,6 +13,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
   const [attachment, setAttachment] = useState(null);
   const [attachmentName, setAttachmentName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [chatError, setChatError] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -22,11 +23,19 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
 
   const initChatRoom = useCallback(async () => {
     setLoading(true);
-    const { data: room } = await getChatRoomForPost(postId);
+    setChatError('');
+    const { data: room, error: roomErr } = await getChatRoomForPost(postId);
     
+    if (roomErr) {
+      setChatError(`Chat room load error: ${roomErr.message || roomErr}`);
+    }
+
     if (room) {
       setRoomId(room.id);
-      const { data: msgs } = await getChatMessages(room.id);
+      const { data: msgs, error: msgErr } = await getChatMessages(room.id);
+      if (msgErr) {
+        setChatError(`Error loading chat history: ${msgErr.message || msgErr}`);
+      }
       setMessages(msgs || []);
       setLoading(false);
       setTimeout(scrollToBottom, 100);
@@ -94,6 +103,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachment) || !roomId) return;
 
+    setChatError('');
     const content = inputText.trim();
     setInputText('');
     const attach = attachment;
@@ -104,8 +114,8 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
 
     if (sendErr) {
       console.error('[ChatRoomModal] Send message failed:', sendErr.message || sendErr);
-      // Restore input text so user does not lose message
-      setInputText(content);
+      setChatError(`Failed to send message: ${sendErr.message || 'Permission denied'}`);
+      setInputText(content); // Restore input text so user does not lose message
       return;
     }
 
@@ -151,6 +161,14 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Visible Error Banner if send/load fails */}
+        {chatError && (
+          <div className="px-4 py-2 bg-red-950/90 border-b border-red-500/40 text-red-300 text-xs font-mono flex items-center justify-between shrink-0">
+            <span>⚠️ {chatError}</span>
+            <button onClick={() => setChatError('')} className="text-red-400 hover:text-white font-bold ml-2">✕</button>
+          </div>
+        )}
 
         {/* Message Thread */}
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">

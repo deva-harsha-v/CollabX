@@ -100,6 +100,14 @@ AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.chat_participants
         WHERE chat_room_id = p_chat_room_id AND user_id = p_user_id
+    ) OR EXISTS (
+        SELECT 1 FROM public.chat_rooms cr
+        JOIN public.posts p ON p.id = cr.post_id
+        WHERE cr.id = p_chat_room_id AND p.author_id = p_user_id
+    ) OR EXISTS (
+        SELECT 1 FROM public.chat_rooms cr
+        JOIN public.contact_requests crq ON crq.post_id = cr.post_id
+        WHERE cr.id = p_chat_room_id AND crq.solver_id = p_user_id AND crq.status = 'accepted'
     );
 $$;
 
