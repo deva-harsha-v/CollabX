@@ -7,9 +7,9 @@ const ProtectedRoute = ({ children }) => {
 
   if (loadingUser) {
     return (
-      <div className="min-h-screen bg-[#060911] text-slate-100 flex items-center justify-center font-mono text-sm text-cyan-400">
+      <div className="min-h-screen bg-[#221226] text-[#F8F4E9] flex items-center justify-center font-mono text-sm text-[#F6DBC0]">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#F6DBC0] animate-ping" />
           <span>Authenticating Session...</span>
         </div>
       </div>

@@ -40,10 +40,10 @@ const FeedPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 cyber-grid relative">
+    <div className="min-h-screen bg-[#221226] text-[#F8F4E9] selection:bg-[#935073]/40 selection:text-[#F6DBC0] cyber-grid relative">
       {/* Background ambient lighting */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-600/10 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[600px] h-[400px] bg-teal-600/10 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#935073]/15 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[600px] h-[400px] bg-[#502D55]/20 rounded-full blur-[160px] pointer-events-none" />
 
       {/* Top Navigation */}
       <Navbar />
@@ -52,22 +52,22 @@ const FeedPage = () => {
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-28 pb-32">
         
         {/* Feed Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#935073]/30 pb-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-mono uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#502D55]/80 border border-[#935073]/40 text-[#F6DBC0] text-xs font-mono uppercase tracking-wider mb-3">
               {feedFilter === 'my_ideas' ? (
-                <Lightbulb className="w-3.5 h-3.5 text-teal-400" />
+                <Lightbulb className="w-3.5 h-3.5 text-[#F6DBC0]" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <Sparkles className="w-3.5 h-3.5 text-[#F6DBC0]" />
               )}
               <span>{feedFilter === 'my_ideas' ? 'Accepted Solutions' : 'Verified Civic Feed'}</span>
             </div>
 
-            <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-white tracking-tight flex items-center gap-3">
+            <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#F8F4E9] tracking-tight flex items-center gap-3">
               {getHeaderTitle()}
             </h1>
             
-            <p className="text-sm text-slate-400 mt-1 max-w-xl">
+            <p className="text-sm text-[#F8F4E9]/70 mt-1 max-w-xl">
               {getHeaderSubtext()}
             </p>
           </div>
@@ -78,7 +78,7 @@ const FeedPage = () => {
               <button
                 type="button"
                 onClick={() => setFeedFilter('all')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 text-xs font-semibold transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#502D55]/80 hover:bg-[#502D55] border border-[#935073]/40 text-[#F6DBC0] text-xs font-semibold transition-all shadow-md"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to All Posts</span>
@@ -105,9 +105,9 @@ const FeedPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveChatPost({ id: post.id, title: post.title })}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-950 to-cyan-950 hover:from-teal-900 hover:to-cyan-900 border border-teal-500/40 text-teal-300 text-xs font-bold transition-all shadow-md"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#502D55] to-[#3a1e3e] hover:from-[#935073] hover:to-[#502D55] border border-[#F6DBC0]/40 text-[#F6DBC0] text-xs font-bold transition-all shadow-md"
                     >
-                      <MessageSquare className="w-4 h-4 text-teal-400" />
+                      <MessageSquare className="w-4 h-4 text-[#F6DBC0]" />
                       <span>Open Realtime Chat Room</span>
                     </button>
                   </div>
@@ -116,16 +116,16 @@ const FeedPage = () => {
             ))}
           </div>
         ) : (
-          <div className="py-20 px-6 rounded-3xl bg-[#0c1426]/60 border border-slate-800 text-center backdrop-blur-xl flex flex-col items-center justify-center my-8">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4">
+          <div className="py-20 px-6 rounded-3xl bg-[#3a1e3e]/60 border border-[#935073]/30 text-center backdrop-blur-xl flex flex-col items-center justify-center my-8">
+            <div className="w-16 h-16 rounded-2xl bg-[#502D55]/60 border border-[#935073]/40 flex items-center justify-center text-[#F6DBC0] mb-4">
               {feedFilter === 'my_ideas' ? (
-                <Lightbulb className="w-8 h-8 text-teal-400" />
+                <Lightbulb className="w-8 h-8 text-[#F6DBC0]" />
               ) : (
                 <Layers className="w-8 h-8" />
               )}
             </div>
 
-            <h3 className="font-['Outfit'] font-bold text-xl text-white mb-2">
+            <h3 className="font-['Outfit'] font-bold text-xl text-[#F8F4E9] mb-2">
               {feedFilter === 'my_posts'
                 ? 'You Haven\'t Posted Any Challenges Yet'
                 : feedFilter === 'my_ideas'
@@ -133,7 +133,7 @@ const FeedPage = () => {
                 : 'No Posts Yet'}
             </h3>
 
-            <p className="text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+            <p className="text-sm text-[#F8F4E9]/70 max-w-md mx-auto mb-6 leading-relaxed">
               {feedFilter === 'my_posts'
                 ? 'When you dispatch a civic challenge brief, it will appear here for management.'
                 : feedFilter === 'my_ideas'
@@ -145,7 +145,7 @@ const FeedPage = () => {
               <button
                 type="button"
                 onClick={() => setFeedFilter('all')}
-                className="px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-300 transition-colors"
+                className="px-5 py-2.5 rounded-full bg-[#502D55] hover:bg-[#935073] text-xs font-semibold text-[#F6DBC0] transition-colors"
               >
                 View Public Live Feed
               </button>
@@ -166,7 +166,7 @@ const FeedPage = () => {
       <div className="fixed bottom-8 right-8 z-40">
         <button
           onClick={handleOpenCreate}
-          className="red-pill-button px-6 py-4 text-base font-bold shadow-[0_10px_35px_rgba(239,68,68,0.5)] flex items-center gap-2"
+          className="red-pill-button px-6 py-4 text-base font-bold shadow-[0_10px_35px_rgba(147,80,115,0.5)] flex items-center gap-2"
         >
           <Plus className="w-5 h-5 stroke-[2.5]" />
           <span>Post</span>

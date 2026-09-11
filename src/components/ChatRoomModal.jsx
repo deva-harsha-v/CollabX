@@ -130,33 +130,33 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-[95vw] sm:w-full max-w-2xl h-[90vh] sm:h-[80vh] flex flex-col bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] text-slate-100 overflow-hidden">
+      <div className="relative w-[95vw] sm:w-full max-w-2xl h-[90vh] sm:h-[80vh] flex flex-col bg-[#221226] border border-[#935073]/40 rounded-3xl shadow-[0_0_60px_rgba(147,80,115,0.25)] text-[#F8F4E9] overflow-hidden">
         
         {/* Glow ambient */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#935073]/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/60 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-[#935073]/30 flex items-center justify-between bg-[#3a1e3e]/80 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400">
+            <div className="w-9 h-9 rounded-xl bg-[#502D55]/60 border border-[#935073]/40 flex items-center justify-center text-[#F6DBC0]">
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold font-['Outfit'] text-white flex items-center gap-2">
+              <h3 className="text-lg font-bold font-['Outfit'] text-[#F8F4E9] flex items-center gap-2">
                 <span>Collaborative Chat Room</span>
-                <span className="text-[10px] font-mono text-teal-400 bg-teal-950 px-2 py-0.5 rounded border border-teal-500/30 font-bold">
+                <span className="text-[10px] font-mono text-[#F6DBC0] bg-[#502D55] px-2 py-0.5 rounded border border-[#F6DBC0]/40 font-bold">
                   REALTIME
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 truncate max-w-sm">
-                Project: <span className="text-cyan-300 font-semibold">{postTitle || 'Civic Challenge'}</span>
+              <p className="text-xs text-[#F8F4E9]/60 truncate max-w-sm">
+                Project: <span className="text-[#F6DBC0] font-semibold">{postTitle || 'Civic Challenge'}</span>
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+            className="p-2 text-[#F8F4E9]/60 hover:text-[#F8F4E9] rounded-full bg-white/5 hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,10 +171,10 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
         )}
 
         {/* Message Thread */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#221226]">
           {loading ? (
-            <div className="py-12 text-center text-cyan-400 font-mono text-xs flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <div className="py-12 text-center text-[#F6DBC0] font-mono text-xs flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#F6DBC0] animate-ping" />
               <span>Connecting to Realtime Chat Thread...</span>
             </div>
           ) : messages.length > 0 ? (
@@ -188,20 +188,20 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
                   key={msg.id}
                   className={`flex items-start gap-2.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-cyan-500/30 bg-slate-900 shrink-0 mt-1">
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-[#935073]/40 bg-[#3a1e3e] shrink-0 mt-1">
                     <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
                   </div>
 
                   <div className={`max-w-[75%] space-y-1 ${isMine ? 'text-right' : 'text-left'}`}>
-                    <span className="text-[10px] font-mono text-slate-400 block px-1">
+                    <span className="text-[10px] font-mono text-[#F8F4E9]/60 block px-1">
                       {senderName} • {new Date(msg.created_at || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
 
                     <div
                       className={`p-3 rounded-2xl text-xs leading-relaxed ${
                         isMine
-                          ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-tr-none shadow-md'
-                          : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
+                          ? 'bg-gradient-to-r from-[#935073] to-[#502D55] text-[#F8F4E9] rounded-tr-none shadow-md'
+                          : 'bg-[#3a1e3e] border border-[#935073]/30 text-[#F8F4E9] rounded-tl-none'
                       }`}
                     >
                       {msg.content && <p>{msg.content}</p>}
@@ -216,7 +216,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
                               href={msg.attachment_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 underline text-cyan-200 hover:text-white font-mono text-[11px]"
+                              className="inline-flex items-center gap-1.5 underline text-[#F6DBC0] hover:text-[#F8F4E9] font-mono text-[11px]"
                             >
                               <FileText className="w-3.5 h-3.5" />
                               <span>View Attachment File</span>
@@ -230,7 +230,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
               );
             })
           ) : (
-            <div className="py-16 text-center text-slate-400 font-mono text-xs">
+            <div className="py-16 text-center text-[#F8F4E9]/60 font-mono text-xs">
               No messages yet in this room. Start the collaboration!
             </div>
           )}
@@ -239,14 +239,14 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
 
         {/* Attachment Selection Preview */}
         {attachmentName && (
-          <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-cyan-300 font-mono">
+          <div className="px-4 py-2 bg-[#221226] border-t border-[#935073]/30 flex items-center justify-between text-xs text-[#F6DBC0] font-mono">
             <span className="flex items-center gap-1.5 truncate">
               <Paperclip className="w-3.5 h-3.5" /> Attached: {attachmentName}
             </span>
             <button
               type="button"
               onClick={() => { setAttachment(null); setAttachmentName(''); }}
-              className="text-slate-400 hover:text-red-400"
+              className="text-[#F8F4E9]/60 hover:text-red-400"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -254,8 +254,8 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
         )}
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-slate-950/80 border-t border-slate-800/80 flex items-center gap-2 shrink-0">
-          <label className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 cursor-pointer transition-colors shrink-0">
+        <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-[#3a1e3e]/90 border-t border-[#935073]/30 flex items-center gap-2 shrink-0">
+          <label className="p-2.5 rounded-xl bg-[#221226] hover:bg-[#502D55] text-[#F8F4E9]/60 hover:text-[#F6DBC0] cursor-pointer transition-colors shrink-0">
             <Paperclip className="w-4 h-4" />
             <input
               type="file"
@@ -269,7 +269,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
             placeholder="Type a message or share technical updates..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            className="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-[#221226] border border-[#935073]/30 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
           />
 
           <button

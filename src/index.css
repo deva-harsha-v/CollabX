@@ -4,93 +4,54 @@
   --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
-  --color-dark-base: #060911;
-  --color-dark-surface: #0c1222;
-  --color-dark-card: #111b33;
-  --color-dark-elevated: #162444;
-  
-  --color-primary: #0284c7;
-  --color-secondary: #0d9488;
-  --color-accent: #06b6d4;
-  --color-cyan-bright: #22d3ee;
-  --color-teal-bright: #14b8a6;
-
-  --color-cta: #ef4444;
-  --color-cta-hover: #dc2626;
+  --color-dusk-base: #221226;
+  --color-dusk-dark: #3a1e3e;
+  --color-dusk-card: #502D55;
+  --color-dusk-mauve: #935073;
+  --color-dusk-peach: #F6DBC0;
+  --color-dusk-cream: #F8F4E9;
 }
 
 @layer base {
   * {
-    border-color: rgba(56, 189, 248, 0.12);
+    border-color: rgba(246, 219, 192, 0.15);
   }
   
   html {
     scroll-behavior: smooth;
-    background-color: #060911;
-    color: #f1f5f9;
+    background-color: #221226;
+    color: #F8F4E9;
     font-family: var(--font-body);
   }
 
   body {
     overflow-x: hidden;
-    background-color: #060911;
+    background-color: #221226;
   }
 }
 
-/* Custom Background Grid & Ambient Glows */
+/* Background Grid & Violet Dusk Ambient Glows */
 .cyber-grid {
   background-size: 50px 50px;
   background-image: 
-    linear-gradient(to right, rgba(6, 182, 212, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 182, 212, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(147, 80, 115, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(147, 80, 115, 0.08) 1px, transparent 1px);
 }
 
-.radial-glow-cyan {
-  background: radial-gradient(circle 600px at 50% 30%, rgba(6, 182, 212, 0.15), transparent 70%);
+.radial-glow-mauve {
+  background: radial-gradient(circle 600px at 50% 30%, rgba(147, 80, 115, 0.25), transparent 70%);
 }
 
-.radial-glow-teal {
-  background: radial-gradient(circle 500px at 80% 60%, rgba(13, 148, 136, 0.12), transparent 70%);
+.radial-glow-peach {
+  background: radial-gradient(circle 500px at 80% 60%, rgba(246, 219, 192, 0.18), transparent 70%);
 }
 
-.radial-glow-blue {
-  background: radial-gradient(circle 550px at 20% 70%, rgba(2, 132, 199, 0.14), transparent 70%);
-}
-
-/* Floating animated orbs */
-@keyframes orb-float-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(40px, -50px) scale(1.15); }
-}
-
-@keyframes orb-float-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-50px, 40px) scale(1.2); }
-}
-
-@keyframes orb-float-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, 35px) scale(0.9); }
-}
-
-.animate-orb-1 {
-  animation: orb-float-1 18s ease-in-out infinite;
-}
-
-.animate-orb-2 {
-  animation: orb-float-2 22s ease-in-out infinite;
-}
-
-.animate-orb-3 {
-  animation: orb-float-3 15s ease-in-out infinite;
-}
-
-/* Glassmorphism Classes */
+/* Glassmorphism Classes in Violet Dusk */
 .glass-panel {
-  background: rgba(12, 18, 34, 0.7);
+  background: rgba(80, 45, 85, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(246, 219, 192, 0.2);
 }
 
 .glass-panel-hover {
@@ -98,28 +59,29 @@
 }
 
 .glass-panel-hover:hover {
-  background: rgba(17, 27, 51, 0.85);
-  border-color: rgba(34, 211, 238, 0.35);
-  box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.25);
+  background: rgba(80, 45, 85, 0.9);
+  border-color: rgba(246, 219, 192, 0.4);
+  box-shadow: 0 20px 40px -15px rgba(147, 80, 115, 0.3);
   transform: translateY(-4px);
 }
 
-/* Red Bubble Pill CTA Button - THE ONLY RED ELEMENT */
+/* Primary Violet Dusk CTA Button */
 .red-pill-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ff4d4d 0%, #ef4444 50%, #dc2626 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #935073 0%, #7d3f60 50%, #502D55 100%);
+  color: #F8F4E9;
   font-family: var(--font-heading);
   font-weight: 800;
   letter-spacing: 0.04em;
   border-radius: 9999px;
+  border: 1px solid rgba(246, 219, 192, 0.4);
   box-shadow: 
-    0 4px 20px rgba(239, 68, 68, 0.45),
-    0 0 35px rgba(239, 68, 68, 0.25),
-    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    0 4px 20px rgba(147, 80, 115, 0.45),
+    0 0 35px rgba(147, 80, 115, 0.25),
+    inset 0 1px 1px rgba(246, 219, 192, 0.4);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
   text-decoration: none;
@@ -135,7 +97,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.35),
+    rgba(246, 219, 192, 0.35),
     transparent
   );
   transition: 0.6s ease;
@@ -147,30 +109,31 @@
 
 .red-pill-button:hover {
   transform: scale(1.06) translateY(-2px);
+  color: #F6DBC0;
   box-shadow: 
-    0 8px 30px rgba(239, 68, 68, 0.7),
-    0 0 60px rgba(239, 68, 68, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+    0 8px 30px rgba(147, 80, 115, 0.7),
+    0 0 60px rgba(246, 219, 192, 0.35),
+    inset 0 1px 2px rgba(246, 219, 192, 0.6);
 }
 
 .red-pill-button:active {
   transform: scale(0.98) translateY(0);
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar in Violet Dusk */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #060911;
+  background: #221226;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.25);
+  background: rgba(147, 80, 115, 0.4);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.5);
+  background: rgba(246, 219, 192, 0.6);
 }

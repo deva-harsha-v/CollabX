@@ -8,11 +8,11 @@ import CTAFooter from '../components/CTAFooter';
 
 const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#221226] text-[#F8F4E9] selection:bg-[#935073]/40 selection:text-[#F6DBC0]">
       {/* Top Floating Glassmorphic Navigation */}
       <Navbar />
 
-      {/* Main 5 Full-Height Sections */}
+      {/* Main Sections */}
       <main>
         {/* Section 1: Hero */}
         <Hero />

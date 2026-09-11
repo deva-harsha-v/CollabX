@@ -76,7 +76,6 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setGeoLoading(false);
-        // Store exact, unrounded Float numbers from the browser API
         const exactLat = position.coords.latitude;
         const exactLng = position.coords.longitude;
         
@@ -142,10 +141,10 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       title,
       description,
       phone_number: phoneNumber,
-      skills: skills.length > 0 ? skills : null, // Optional
+      skills: skills.length > 0 ? skills : null,
       organization: organization || null,
       address: address || null,
-      coordinates: coordinates || null, // Full unrounded float numbers
+      coordinates: coordinates || null,
       media: mediaPreview || null,
     });
 
@@ -161,16 +160,16 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-8 bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.25)] text-slate-100 my-auto">
+      <div className="relative w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-8 bg-[#221226] border border-[#935073]/40 rounded-3xl shadow-[0_0_50px_rgba(147,80,115,0.25)] text-[#F8F4E9] my-auto">
         
         {/* Glow ambient */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#935073]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#502D55]/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
         <button
           onClick={handleReset}
-          className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+          className="absolute top-6 right-6 p-2 text-[#F8F4E9]/60 hover:text-[#F8F4E9] rounded-full bg-white/5 hover:bg-white/10 transition-colors"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -178,12 +177,12 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+          <div className="w-10 h-10 rounded-xl bg-[#502D55]/60 border border-[#935073]/40 flex items-center justify-center text-[#F6DBC0]">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold font-['Outfit'] text-white">Post a Civic Challenge</h3>
-            <p className="text-xs text-cyan-400 font-mono tracking-wider uppercase">Dispatch to Verified Solvers</p>
+            <h3 className="text-2xl font-bold font-['Outfit'] text-[#F8F4E9]">Post a Civic Challenge</h3>
+            <p className="text-xs text-[#F6DBC0] font-mono tracking-wider uppercase">Dispatch to Verified Solvers</p>
           </div>
         </div>
 
@@ -199,8 +198,8 @@ const CreatePostModal = ({ isOpen, onClose }) => {
           
           {/* Title (Required) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Title <span className="text-cyan-400">*</span>
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+              Title <span className="text-[#F6DBC0]">*</span>
             </label>
             <input
               type="text"
@@ -208,33 +207,33 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               placeholder="e.g. Sub-Surface Arsenic Contamination Mapping"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+              className="w-full px-4 py-2.5 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
             />
           </div>
 
           {/* Phone Number (Required - Gated Privacy) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Phone Number <span className="text-cyan-400">*</span></span>
-              <span className="text-[10px] text-cyan-400 font-mono font-normal">🔒 Gated: Hidden until accepted</span>
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Phone Number <span className="text-[#F6DBC0]">*</span></span>
+              <span className="text-[10px] text-[#F6DBC0] font-mono font-normal">🔒 Gated: Hidden until accepted</span>
             </label>
             <div className="relative">
-              <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Phone className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="tel"
                 required
                 placeholder="+1 (555) 000-0000"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
               />
             </div>
           </div>
 
           {/* Description (Required) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Description <span className="text-cyan-400">*</span>
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+              Description <span className="text-[#F6DBC0]">*</span>
             </label>
             <textarea
               required
@@ -242,27 +241,27 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               placeholder="Describe the societal crisis, parameters, affected area, and scientific support needed..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors resize-none"
+              className="w-full px-4 py-2.5 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors resize-none"
             />
           </div>
 
           {/* Skills Required (Tag Input, OPTIONAL) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Required Roles / Skills <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+              Required Roles / Skills <span className="text-[10px] text-[#F8F4E9]/60 font-normal">(Optional)</span>
             </label>
-            <div className="p-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl focus-within:border-cyan-400 transition-colors">
+            <div className="p-2.5 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl focus-within:border-[#F6DBC0] transition-colors">
               <div className="flex flex-wrap gap-2 mb-1.5">
                 {skills.map((skill) => (
                   <span
                     key={skill}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#502D55] border border-[#935073]/40 text-[#F6DBC0] text-xs font-mono"
                   >
                     <span>{skill}</span>
                     <button
                       type="button"
                       onClick={() => removeSkill(skill)}
-                      className="hover:text-red-400 text-slate-400 ml-0.5"
+                      className="hover:text-red-400 text-[#F8F4E9]/60 ml-0.5"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -275,61 +274,61 @@ const CreatePostModal = ({ isOpen, onClose }) => {
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={handleAddSkill}
-                className="w-full bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
+                className="w-full bg-transparent text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none"
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-1 font-mono">Press Enter or comma to add a skill tag.</p>
+            <p className="text-[10px] text-[#F8F4E9]/60 mt-1 font-mono">Press Enter or comma to add a skill tag.</p>
           </div>
 
           {/* Organization & Physical Address */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                Posting Organization <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+                Posting Organization <span className="text-[10px] text-[#F8F4E9]/60 font-normal">(Optional)</span>
               </label>
               <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Building2 className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="e.g. Clean Water NGO / Municipal Dept"
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full pl-9 pr-3 py-2 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
                 />
               </div>
             </div>
 
             {/* Address (Optional) */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                Physical Address <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+                Physical Address <span className="text-[10px] text-[#F8F4E9]/60 font-normal">(Optional)</span>
               </label>
               <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <MapPin className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="e.g. Sector 4 Aquifer Zone, Bengaluru"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full pl-9 pr-3 py-2 bg-[#3a1e3e]/70 border border-[#935073]/30 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
                 />
               </div>
             </div>
           </div>
 
           {/* Geolocation Button & Coordinates Display */}
-          <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800 space-y-2">
+          <div className="p-3.5 rounded-xl bg-[#3a1e3e]/50 border border-[#935073]/30 space-y-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-                Exact Coordinates <span className="text-[10px] text-cyan-400 font-mono font-normal">🔒 Gated: Hidden until accepted</span>
+              <span className="text-xs font-semibold text-[#F8F4E9] flex items-center gap-1.5">
+                <Navigation className="w-3.5 h-3.5 text-[#F6DBC0]" />
+                Exact Coordinates <span className="text-[10px] text-[#F6DBC0] font-mono font-normal">🔒 Gated: Hidden until accepted</span>
               </span>
 
               <button
                 type="button"
                 onClick={handleGetLocation}
                 disabled={geoLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 text-xs font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#502D55]/80 hover:bg-[#502D55] border border-[#935073]/40 text-[#F6DBC0] text-xs font-medium transition-colors"
               >
                 <Navigation className={`w-3.5 h-3.5 ${geoLoading ? 'animate-spin' : ''}`} />
                 <span>{geoLoading ? 'Acquiring GPS...' : 'Use My Current Location'}</span>
@@ -346,7 +345,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
             {/* Revealed Coordinates Field */}
             {coordinates && (
-              <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono flex items-center justify-between text-cyan-300 animate-fade-in">
+              <div className="p-2.5 rounded-lg bg-[#502D55]/40 border border-[#935073]/40 text-xs font-mono flex items-center justify-between text-[#F6DBC0] animate-fade-in">
                 <span>Latitude: {coordinates.latitude}</span>
                 <span>Longitude: {coordinates.longitude}</span>
               </div>
@@ -355,12 +354,12 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
           {/* Optional Media Input & Thumbnail Preview */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Attach Image / Diagram <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1">
+              Attach Image / Diagram <span className="text-[10px] text-[#F8F4E9]/60 font-normal">(Optional)</span>
             </label>
             <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-700/80 text-xs text-slate-300 hover:text-white hover:border-cyan-500/40 cursor-pointer transition-colors">
-                <Upload className="w-4 h-4 text-cyan-400" />
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#3a1e3e] border border-[#935073]/40 text-xs text-[#F8F4E9]/80 hover:text-[#F8F4E9] hover:border-[#F6DBC0]/40 cursor-pointer transition-colors">
+                <Upload className="w-4 h-4 text-[#F6DBC0]" />
                 <span>{mediaPreview ? 'Change Attachment' : 'Upload File'}</span>
                 <input
                   type="file"
@@ -370,7 +369,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
                 />
               </label>
               {mediaPreview && (
-                <div className="relative w-12 h-12 rounded-lg border border-cyan-500/40 overflow-hidden shrink-0">
+                <div className="relative w-12 h-12 rounded-lg border border-[#F6DBC0]/40 overflow-hidden shrink-0">
                   <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -384,7 +383,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Submit CTA (Red Pill Button) */}
+          {/* Submit CTA */}
           <div className="pt-3">
             <button
               type="submit"

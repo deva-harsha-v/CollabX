@@ -112,7 +112,7 @@ const Navbar = () => {
       <header
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ease-in-out ${
           isScrolled
-            ? 'py-0 px-0 bg-[#060911]/95 backdrop-blur-2xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.8)]'
+            ? 'py-0 px-0 bg-[#221226]/95 backdrop-blur-2xl border-b border-[#935073]/30 shadow-[0_4px_30px_rgba(0,0,0,0.8)]'
             : 'py-2.5 px-4 sm:px-8 bg-transparent'
         }`}
       >
@@ -120,15 +120,15 @@ const Navbar = () => {
           className={`max-w-7xl mx-auto flex items-center justify-between transition-all duration-500 ease-in-out ${
             isScrolled
               ? 'px-6 sm:px-10 py-2 rounded-none bg-transparent border-transparent shadow-none'
-              : 'px-5 sm:px-6 py-2 rounded-full bg-[#0b1222]/80 backdrop-blur-xl border border-cyan-500/20 shadow-[0_10px_35px_rgba(0,0,0,0.5)]'
+              : 'px-5 sm:px-6 py-2 rounded-full bg-[#3a1e3e]/85 backdrop-blur-xl border border-[#F6DBC0]/20 shadow-[0_10px_35px_rgba(0,0,0,0.5)]'
           }`}
         >
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative flex items-center justify-center w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-teal-500 to-blue-600 p-[1.5px] shadow-lg shadow-cyan-500/25">
-              <div className="w-full h-full bg-[#070d1a] rounded-[10px] flex items-center justify-center">
+            <div className="relative flex items-center justify-center w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#935073] via-[#F6DBC0] to-[#502D55] p-[1.5px] shadow-lg shadow-[#935073]/25">
+              <div className="w-full h-full bg-[#221226] rounded-[10px] flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-cyan-400 group-hover:rotate-12 transition-transform duration-300"
+                  className="w-5 h-5 text-[#F6DBC0] group-hover:rotate-12 transition-transform duration-300"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -137,32 +137,32 @@ const Navbar = () => {
                   strokeLinejoin="round"
                 >
                   <path d="M18 6L6 18M6 6l12 12" />
-                  <circle cx="12" cy="12" r="2.5" fill="#22d3ee" />
-                  <circle cx="6" cy="6" r="1.5" fill="#0284c7" />
-                  <circle cx="18" cy="6" r="1.5" fill="#14b8a6" />
-                  <circle cx="6" cy="18" r="1.5" fill="#14b8a6" />
-                  <circle cx="18" cy="18" r="1.5" fill="#0284c7" />
+                  <circle cx="12" cy="12" r="2.5" fill="#F6DBC0" />
+                  <circle cx="6" cy="6" r="1.5" fill="#935073" />
+                  <circle cx="18" cy="6" r="1.5" fill="#F6DBC0" />
+                  <circle cx="6" cy="18" r="1.5" fill="#F6DBC0" />
+                  <circle cx="18" cy="18" r="1.5" fill="#935073" />
                 </svg>
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-['Outfit'] font-black text-lg sm:text-xl tracking-tight text-white flex items-center">
-                Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">X</span>
+              <span className="font-['Outfit'] font-black text-lg sm:text-xl tracking-tight text-[#F8F4E9] flex items-center">
+                Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F6DBC0] to-[#935073]">X</span>
               </span>
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-cyan-400/80 font-mono -mt-1 font-semibold">Civic Grid</span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#F6DBC0]/80 font-mono -mt-1 font-semibold">Civic Grid</span>
             </div>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
-            <Link to="/" className="hover:text-cyan-400 transition-all duration-300 border-b border-transparent hover:border-cyan-400/40 pb-0.5">The Mission</Link>
-            <a href="#how-it-works" className="hover:text-cyan-400 transition-all duration-300 border-b border-transparent hover:border-cyan-400/40 pb-0.5">How It Works</a>
-            <a href="#security" className="hover:text-cyan-400 transition-all duration-300 border-b border-transparent hover:border-cyan-400/40 pb-0.5">Security & Trust</a>
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#F8F4E9]/80">
+            <Link to="/" className="hover:text-[#F6DBC0] transition-all duration-300 border-b border-transparent hover:border-[#F6DBC0]/40 pb-0.5">The Mission</Link>
+            <a href="#how-it-works" className="hover:text-[#F6DBC0] transition-all duration-300 border-b border-transparent hover:border-[#F6DBC0]/40 pb-0.5">How It Works</a>
+            <a href="#security" className="hover:text-[#F6DBC0] transition-all duration-300 border-b border-transparent hover:border-[#F6DBC0]/40 pb-0.5">Security & Trust</a>
             {currentUser && (
               <Link
                 to="/feed"
                 onClick={() => setFeedFilter('all')}
-                className="text-cyan-300 font-semibold flex items-center gap-1 hover:text-cyan-200 transition-colors"
+                className="text-[#F6DBC0] font-semibold flex items-center gap-1 hover:text-[#F8F4E9] transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Live Feed
               </Link>
@@ -178,23 +178,23 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={handleToggleNotif}
-                  className="relative p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white transition-colors"
+                  className="relative p-2 rounded-xl bg-[#3a1e3e]/80 hover:bg-[#502D55] border border-[#935073]/30 text-[#F8F4E9] hover:text-[#F6DBC0] transition-colors"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-5 h-5 text-slate-300" />
+                  <Bell className="w-5 h-5 text-[#F8F4E9]/80" />
                   
-                  {/* Unread Glowing Cyan/Teal Badge Dot */}
+                  {/* Unread Glowing Mauve/Peach Badge Dot */}
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#F6DBC0] shadow-[0_0_8px_#F6DBC0] animate-pulse" />
                   )}
                 </button>
 
                 {/* Notification Dropdown Panel */}
                 {showNotifMenu && (
-                  <div className="absolute right-0 mt-2 w-80 p-4 bg-[#0c1322]/95 border border-cyan-500/30 rounded-2xl backdrop-blur-2xl shadow-2xl z-50 text-xs">
-                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
-                      <span className="font-bold text-white font-['Outfit'] text-sm">Notifications</span>
-                      <span className="text-[10px] font-mono text-cyan-400 font-semibold uppercase">
+                  <div className="absolute right-0 mt-2 w-80 p-4 bg-[#221226]/95 border border-[#935073]/40 rounded-2xl backdrop-blur-2xl shadow-2xl z-50 text-xs">
+                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#935073]/30">
+                      <span className="font-bold text-[#F8F4E9] font-['Outfit'] text-sm">Notifications</span>
+                      <span className="text-[10px] font-mono text-[#F6DBC0] font-semibold uppercase">
                         {notifications.length} Total
                       </span>
                     </div>
@@ -205,14 +205,14 @@ const Navbar = () => {
                           <div
                             key={n.id}
                             onClick={() => handleNotifClick(n)}
-                            className="p-2.5 rounded-xl bg-slate-950/80 hover:bg-cyan-950/40 border border-slate-800/80 flex items-start gap-2.5 cursor-pointer transition-colors"
+                            className="p-2.5 rounded-xl bg-[#3a1e3e]/60 hover:bg-[#502D55]/80 border border-[#935073]/30 flex items-start gap-2.5 cursor-pointer transition-colors"
                           >
-                            <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${n.read ? 'bg-slate-600' : 'bg-cyan-400'}`} />
+                            <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${n.read ? 'bg-[#935073]/40' : 'bg-[#F6DBC0]'}`} />
                             <div className="flex-1">
-                              <p className="text-slate-200 font-medium leading-snug">
+                              <p className="text-[#F8F4E9] font-medium leading-snug">
                                 {n.message || n.payload?.message || 'New Notification'}
                               </p>
-                              <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+                              <span className="text-[10px] text-[#F8F4E9]/50 font-mono mt-1 block">
                                 {new Date(n.created_at || n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
@@ -220,7 +220,7 @@ const Navbar = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="py-6 text-center text-slate-400 font-mono">
+                      <div className="py-6 text-center text-[#F8F4E9]/60 font-mono">
                         No notifications yet
                       </div>
                     )}
@@ -233,9 +233,9 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={handleToggleProfile}
-                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/30 text-white transition-all group"
+                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-[#3a1e3e]/80 hover:bg-[#502D55] border border-[#935073]/30 text-[#F8F4E9] transition-all group"
                 >
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-cyan-400/50 bg-slate-800 shrink-0">
+                  <div className="w-7 h-7 rounded-full overflow-hidden border border-[#F6DBC0]/40 bg-[#221226] shrink-0">
                     <img
                       src={currentUser.avatar}
                       alt={currentUser.name}
@@ -246,26 +246,26 @@ const Navbar = () => {
                       }}
                     />
                   </div>
-                  <span className="text-xs font-semibold text-slate-200 max-w-[100px] truncate hidden sm:inline">
+                  <span className="text-xs font-semibold text-[#F8F4E9] max-w-[100px] truncate hidden sm:inline">
                     {currentUser.name}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#F8F4E9]/60 group-hover:text-[#F6DBC0] transition-colors" />
                 </button>
 
                 {/* Profile Glassmorphic Dropdown Menu */}
                 {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 py-2 bg-[#0c1322]/95 border border-cyan-500/30 rounded-2xl backdrop-blur-2xl shadow-2xl z-50 text-xs">
-                    <div className="px-3.5 py-2 border-b border-slate-800 mb-1">
-                      <p className="font-bold text-white truncate">{currentUser.name}</p>
-                      <p className="text-[10px] text-slate-400 font-mono truncate">{currentUser.email}</p>
+                  <div className="absolute right-0 mt-2 w-48 py-2 bg-[#221226]/95 border border-[#935073]/40 rounded-2xl backdrop-blur-2xl shadow-2xl z-50 text-xs">
+                    <div className="px-3.5 py-2 border-b border-[#935073]/30 mb-1">
+                      <p className="font-bold text-[#F8F4E9] truncate">{currentUser.name}</p>
+                      <p className="text-[10px] text-[#F8F4E9]/60 font-mono truncate">{currentUser.email}</p>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleMyPostsClick}
-                      className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-cyan-300 hover:bg-cyan-950/50 flex items-center gap-2 transition-colors font-medium"
+                      className="w-full px-3.5 py-2 text-left text-[#F8F4E9]/80 hover:text-[#F6DBC0] hover:bg-[#502D55]/60 flex items-center gap-2 transition-colors font-medium"
                     >
-                      <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                      <FileText className="w-3.5 h-3.5 text-[#F6DBC0]" />
                       <span>My Posts</span>
                     </button>
 
@@ -273,16 +273,16 @@ const Navbar = () => {
                     <button
                       type="button"
                       onClick={handleMyIdeasClick}
-                      className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-teal-300 hover:bg-teal-950/50 flex items-center gap-2 transition-colors font-medium"
+                      className="w-full px-3.5 py-2 text-left text-[#F8F4E9]/80 hover:text-[#F6DBC0] hover:bg-[#502D55]/60 flex items-center gap-2 transition-colors font-medium"
                     >
-                      <Lightbulb className="w-3.5 h-3.5 text-teal-400" />
+                      <Lightbulb className="w-3.5 h-3.5 text-[#935073]" />
                       <span>My Ideas</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full px-3.5 py-2 text-left text-red-300 hover:text-red-200 hover:bg-red-950/40 flex items-center gap-2 transition-colors font-medium border-t border-slate-800/80 mt-1"
+                      className="w-full px-3.5 py-2 text-left text-red-300 hover:text-red-200 hover:bg-red-950/40 flex items-center gap-2 transition-colors font-medium border-t border-[#935073]/30 mt-1"
                     >
                       <LogOut className="w-3.5 h-3.5 text-red-400" />
                       <span>Logout</span>
@@ -306,34 +306,34 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => setShowMobileNav(!showMobileNav)}
-            className="md:hidden p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white transition-colors"
+            className="md:hidden p-2 rounded-xl bg-[#3a1e3e]/80 hover:bg-[#502D55] border border-[#935073]/30 text-[#F8F4E9] hover:text-[#F6DBC0] transition-colors"
             aria-label="Toggle mobile menu"
           >
-            {showMobileNav ? <CloseIcon className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5 text-slate-300" />}
+            {showMobileNav ? <CloseIcon className="w-5 h-5 text-[#F6DBC0]" /> : <Menu className="w-5 h-5 text-[#F8F4E9]" />}
           </button>
         </div>
 
         {/* Mobile Navigation Drawer */}
         {showMobileNav && (
-          <div className="md:hidden mx-4 mt-2 p-4 bg-[#0c1322]/95 border border-cyan-500/30 rounded-2xl backdrop-blur-2xl shadow-2xl flex flex-col gap-3 text-sm text-slate-200 animate-fade-in">
+          <div className="md:hidden mx-4 mt-2 p-4 bg-[#221226]/95 border border-[#935073]/40 rounded-2xl backdrop-blur-2xl shadow-2xl flex flex-col gap-3 text-sm text-[#F8F4E9] animate-fade-in">
             <Link 
               to="/" 
               onClick={() => setShowMobileNav(false)}
-              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+              className="py-2 px-3 rounded-lg hover:bg-[#502D55]/60 hover:text-[#F6DBC0] transition-colors"
             >
               The Mission
             </Link>
             <a 
               href="#how-it-works" 
               onClick={() => setShowMobileNav(false)}
-              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+              className="py-2 px-3 rounded-lg hover:bg-[#502D55]/60 hover:text-[#F6DBC0] transition-colors"
             >
               How It Works
             </a>
             <a 
               href="#security" 
               onClick={() => setShowMobileNav(false)}
-              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+              className="py-2 px-3 rounded-lg hover:bg-[#502D55]/60 hover:text-[#F6DBC0] transition-colors"
             >
               Security & Trust
             </a>
@@ -341,9 +341,9 @@ const Navbar = () => {
               <Link
                 to="/feed"
                 onClick={() => { setFeedFilter('all'); setShowMobileNav(false); }}
-                className="py-2 px-3 rounded-lg text-cyan-300 font-semibold bg-cyan-950/60 border border-cyan-500/30 flex items-center gap-2"
+                className="py-2 px-3 rounded-lg text-[#F6DBC0] font-semibold bg-[#502D55]/60 border border-[#935073]/40 flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-cyan-400" /> Live Feed
+                <Sparkles className="w-4 h-4 text-[#F6DBC0]" /> Live Feed
               </Link>
             )}
           </div>

@@ -35,7 +35,6 @@ const AuthPage = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      // NOTE: This base64 data URL will be replaced with a Supabase Storage bucket URL in production.
       setAvatarPreview(reader.result);
       setErrorMsg('');
     };
@@ -58,7 +57,7 @@ const AuthPage = () => {
   // Generate Initials Avatar Data URL if no image provided
   const getInitialsAvatar = (userName) => {
     const nameStr = userName.trim() || 'User';
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nameStr)}&backgroundColor=0284c7,0d9488,06b6d4`;
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nameStr)}&backgroundColor=935073,502D55,F6DBC0`;
   };
 
   const handleSubmit = async (e) => {
@@ -129,38 +128,38 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden cyber-grid">
+    <div className="min-h-screen bg-[#221226] text-[#F8F4E9] flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden cyber-grid">
       {/* Background glow orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-teal-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-[#935073]/15 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#502D55]/20 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Top Brand Link */}
       <Link to="/" className="flex items-center gap-3 mb-8 group z-10">
-        <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 via-teal-500 to-blue-600 p-[2px] shadow-lg shadow-cyan-500/25">
-          <div className="w-full h-full bg-[#070d1a] rounded-[14px] flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
+        <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#935073] via-[#F6DBC0] to-[#502D55] p-[2px] shadow-lg shadow-[#935073]/25">
+          <div className="w-full h-full bg-[#221226] rounded-[14px] flex items-center justify-center">
+            <ShieldCheck className="w-6 h-6 text-[#F6DBC0] group-hover:rotate-12 transition-transform duration-300" />
           </div>
         </div>
         <div className="flex flex-col">
-          <span className="font-['Outfit'] font-black text-2xl tracking-tight text-white flex items-center">
-            Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">X</span>
+          <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#F8F4E9] flex items-center">
+            Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F6DBC0] to-[#935073]">X</span>
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-cyan-400/80 font-mono -mt-1 font-semibold">Civic Grid</span>
+          <span className="text-[9px] uppercase tracking-widest text-[#F6DBC0]/80 font-mono -mt-1 font-semibold">Civic Grid</span>
         </div>
       </Link>
 
       {/* Auth Card Shell */}
-      <div className="relative z-10 w-full max-w-md p-8 bg-[#0c1322]/90 border border-cyan-500/30 rounded-3xl backdrop-blur-2xl shadow-[0_0_50px_rgba(6,182,212,0.18)]">
+      <div className="relative z-10 w-full max-w-md p-8 bg-[#3a1e3e]/90 border border-[#935073]/40 rounded-3xl backdrop-blur-2xl shadow-[0_0_50px_rgba(147,80,115,0.2)]">
         
         {/* Toggle Mode Tabs */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-slate-950/80 border border-slate-800 rounded-2xl">
+        <div className="grid grid-cols-2 gap-2 p-1.5 mb-6 bg-[#221226]/80 border border-[#935073]/30 rounded-2xl">
           <button
             type="button"
             onClick={() => { setMode('signup'); setErrorMsg(''); }}
             className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
               mode === 'signup'
-                ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-r from-[#935073] to-[#502D55] text-[#F8F4E9] shadow-md'
+                : 'text-[#F8F4E9]/60 hover:text-[#F8F4E9]'
             }`}
           >
             Create Account
@@ -171,8 +170,8 @@ const AuthPage = () => {
             onClick={() => { setMode('signin'); setErrorMsg(''); }}
             className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
               mode === 'signin'
-                ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-r from-[#935073] to-[#502D55] text-[#F8F4E9] shadow-md'
+                : 'text-[#F8F4E9]/60 hover:text-[#F8F4E9]'
             }`}
           >
             Sign In
@@ -181,10 +180,10 @@ const AuthPage = () => {
 
         {/* Card Header */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold font-['Outfit'] text-white">
+          <h2 className="text-2xl font-bold font-['Outfit'] text-[#F8F4E9]">
             {mode === 'signup' ? 'Join the CollabX Network' : 'Welcome Back'}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#F8F4E9]/60 mt-1">
             {mode === 'signup'
               ? 'Universal account for civic problem solvers & community partners'
               : 'Enter your credentials to access the verified feed'}
@@ -205,18 +204,18 @@ const AuthPage = () => {
           {/* Sign Up Avatar Upload Preview */}
           {mode === 'signup' && (
             <div className="flex flex-col items-center justify-center mb-5">
-              <div className="relative w-20 h-20 rounded-full border-2 border-cyan-500/40 bg-slate-900 flex items-center justify-center overflow-hidden shadow-inner group">
+              <div className="relative w-20 h-20 rounded-full border-2 border-[#935073]/40 bg-[#221226] flex items-center justify-center overflow-hidden shadow-inner group">
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-cyan-300 transition-colors">
+                  <div className="flex flex-col items-center justify-center text-[#F8F4E9]/60 group-hover:text-[#F6DBC0] transition-colors">
                     <User className="w-8 h-8" />
                     <span className="text-[10px] font-mono mt-0.5">Photo</span>
                   </div>
                 )}
               </div>
               
-              <label className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-medium hover:bg-cyan-900/60 cursor-pointer transition-colors">
+              <label className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#502D55]/80 border border-[#935073]/40 text-[#F6DBC0] text-xs font-medium hover:bg-[#502D55] cursor-pointer transition-colors">
                 <ImageIcon className="w-3.5 h-3.5" />
                 <span>{avatarPreview ? 'Change Photo' : 'Upload Profile Photo'}</span>
                 <input
@@ -232,18 +231,18 @@ const AuthPage = () => {
           {/* Full Name (Sign Up only) */}
           {mode === 'signup' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1.5">
                 Full Name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <User className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
                   placeholder="e.g. Dr. Priya Raman"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-[#221226]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
                 />
               </div>
             </div>
@@ -251,36 +250,36 @@ const AuthPage = () => {
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1.5">
               Official Email
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 placeholder="name@institution.org"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-[#221226]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
               />
             </div>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1.5">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-[#221226]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
               />
             </div>
           </div>
@@ -288,18 +287,18 @@ const AuthPage = () => {
           {/* Confirm Password (Sign Up only) */}
           {mode === 'signup' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[#F8F4E9]/80 uppercase tracking-wider mb-1.5">
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-[#F8F4E9]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-[#221226]/70 border border-[#935073]/30 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F8F4E9]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
                 />
               </div>
             </div>
@@ -308,17 +307,17 @@ const AuthPage = () => {
           {/* Optional Verification Document (Sign Up only) */}
           {mode === 'signup' && (
             <div className="pt-2">
-              <div className="p-3.5 rounded-xl bg-slate-950/50 border border-dashed border-cyan-500/30 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#221226]/50 border border-dashed border-[#935073]/40 text-xs">
                 <div className="flex items-start gap-2.5">
-                  <Upload className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <Upload className="w-4 h-4 text-[#F6DBC0] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-slate-200">
-                      Upload Verification Document <span className="text-[10px] text-cyan-400 font-mono font-normal">(Optional)</span>
+                    <p className="font-semibold text-[#F8F4E9]">
+                      Upload Verification Document <span className="text-[10px] text-[#F6DBC0] font-mono font-normal">(Optional)</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                    <p className="text-[11px] text-[#F8F4E9]/60 mt-0.5 leading-snug">
                       Optional — you can verify your credentials later. Accepts PDF/PNG proof.
                     </p>
-                    <label className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-[11px] font-medium text-cyan-300 hover:bg-cyan-900/60 cursor-pointer transition-colors">
+                    <label className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#502D55]/60 border border-[#935073]/40 text-[11px] font-medium text-[#F6DBC0] hover:bg-[#502D55] cursor-pointer transition-colors">
                       <span>{docName || 'Choose File'}</span>
                       <input
                         type="file"
@@ -333,7 +332,7 @@ const AuthPage = () => {
             </div>
           )}
 
-          {/* Submit Button (Red Pill Button - THE ONLY RED ELEMENT) */}
+          {/* Submit Button */}
           <div className="pt-3">
             <button
               type="submit"
