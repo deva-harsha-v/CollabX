@@ -29,49 +29,49 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete }) => {
   return (
     <>
       {/* Compact Horizontal Bar View */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#3a1e3e]/80 border border-[#935073]/30 hover:border-[#F6DBC0]/50 transition-all duration-300 backdrop-blur-xl shadow-lg flex items-center justify-between gap-4 group">
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#1A3D63]/80 border border-[#4A7FA7]/30 hover:border-[#4A7FA7]/60 transition-all duration-300 backdrop-blur-xl shadow-lg flex items-center justify-between gap-4 group">
         
         {/* Left Column: Post Content Snippet */}
         <div className="flex-1 min-w-0 text-left">
           
           {/* Header Strip: Author, Date, Status Tag */}
           <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-            <span className="text-xs font-semibold text-[#F8F4E9] flex items-center gap-1 truncate">
+            <span className="text-xs font-semibold text-[#F6FAFD] flex items-center gap-1 truncate">
               <span>{post.author_name || post.authorName || 'Verified Author'}</span>
-              <UserCheck className="w-3 h-3 text-[#F6DBC0] shrink-0" />
+              <UserCheck className="w-3 h-3 text-[#B3CFE5] shrink-0" />
             </span>
-            <span className="text-[#935073]/60">•</span>
-            <span className="text-[11px] font-mono text-[#F8F4E9]/60 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-[#F6DBC0]" />
+            <span className="text-[#4A7FA7]/60">•</span>
+            <span className="text-[11px] font-mono text-[#B3CFE5]/80 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-[#B3CFE5]" />
               <span>{formatDate(post.created_at || post.createdAt)}</span>
             </span>
 
             {/* Post Status Tag */}
             {post.status === 'completed' && (
-              <span className="px-2 py-0.5 rounded bg-[#502D55] text-[#F6DBC0] border border-[#F6DBC0]/40 text-[10px] font-mono font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> COMPLETED
+              <span className="px-2 py-0.5 rounded bg-[#0A1931] text-[#B3CFE5] border border-[#4A7FA7]/40 text-[10px] font-mono font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-[#B3CFE5]" /> COMPLETED
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h3 className="font-['Outfit'] font-bold text-lg sm:text-xl text-[#F8F4E9] truncate group-hover:text-[#F6DBC0] transition-colors mb-1">
+          <h3 className="font-['Outfit'] font-bold text-lg sm:text-xl text-[#F6FAFD] truncate group-hover:text-[#B3CFE5] transition-colors mb-1">
             {post.title}
           </h3>
 
           {/* Truncated Description */}
-          <p className="text-xs text-[#F8F4E9]/80 leading-relaxed line-clamp-2 mb-2.5">
+          <p className="text-xs text-[#B3CFE5]/90 leading-relaxed line-clamp-2 mb-2.5">
             {truncatedDesc}
           </p>
 
           {/* Skills Pills */}
           {post.skills && Array.isArray(post.skills) && post.skills.length > 0 && (
             <div className="flex flex-wrap gap-1.5 items-center">
-              <Tag className="w-3 h-3 text-[#F6DBC0] shrink-0" />
+              <Tag className="w-3 h-3 text-[#B3CFE5] shrink-0" />
               {post.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="px-2 py-0.5 rounded-md bg-[#502D55]/80 border border-[#935073]/40 text-[#F6DBC0] text-[11px] font-mono"
+                  className="px-2 py-0.5 rounded-md bg-[#0A1931]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-[11px] font-mono"
                 >
                   {skill}
                 </span>
@@ -83,9 +83,9 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete }) => {
         {/* Right Column: Small Media Thumbnail & Actions */}
         <div className="flex items-center gap-3 shrink-0">
           
-          {/* Small Right-Docked Image Thumbnail (Fixed 72-84px) */}
+          {/* Small Right-Docked Image Thumbnail */}
           {mediaUrl && (
-            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#935073]/40 bg-[#221226] shrink-0 hidden sm:block">
+            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#4A7FA7]/40 bg-[#0A1931] shrink-0 hidden sm:block">
               <img src={mediaUrl} alt={post.title} className="w-full h-full object-cover" />
             </div>
           )}
@@ -97,9 +97,9 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete }) => {
             <button
               type="button"
               onClick={() => setIsDetailOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#502D55]/80 hover:bg-[#502D55] border border-[#935073]/40 text-[#F6DBC0] font-['Outfit'] font-semibold text-xs transition-all shadow-md hover:scale-105"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#F6FAFD] font-['Outfit'] font-semibold text-xs transition-all shadow-md hover:scale-105"
             >
-              <Eye className="w-4 h-4 text-[#F6DBC0]" />
+              <Eye className="w-4 h-4 text-[#B3CFE5]" />
               <span>Review</span>
             </button>
 
@@ -111,7 +111,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete }) => {
                     type="button"
                     onClick={() => onComplete(post.id)}
                     title="Mark Completed"
-                    className="p-2 rounded-xl bg-[#502D55] hover:bg-[#935073] border border-[#F6DBC0]/40 text-[#F6DBC0] text-xs transition-colors"
+                    className="p-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                   </button>
