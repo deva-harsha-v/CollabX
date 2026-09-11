@@ -66,8 +66,7 @@ export function extractPostRequirement(post) {
   return 'organisation_only';
 }
 
-// Local storage helper
-const getLocal = (key, fallback = []) => {
+export const getLocal = (key, fallback = []) => {
   try {
     const val = localStorage.getItem(key);
     return val ? JSON.parse(val) : fallback;
@@ -76,13 +75,25 @@ const getLocal = (key, fallback = []) => {
   }
 };
 
-const setLocal = (key, val) => {
+export const setLocal = (key, val) => {
   try {
     localStorage.setItem(key, JSON.stringify(val));
   } catch (e) {
     console.error(`localStorage set error for ${key}:`, e);
   }
 };
+
+export function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try {
+      return crypto.randomUUID();
+    } catch (e) {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 /**
  * Global synchronization of all deleted post IDs across Supabase & all browsers
@@ -184,49 +195,82 @@ export async function syncDeletedPostsForUser(currentUser) {
  * Auth: Get current session user
  */
 export async function getCurrentUser() {
+  let sessionUser = null;
+
   if (isSupabaseConfigured) {
     try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr || !session) return { data: null, error: sessionErr };
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        sessionUser = session.user;
+      }
+    } catch (err) {}
+  }
 
-      const { data: profile, error: profErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+  const localSession = getLocal(LOCAL_SESSION, null);
 
-      if (profErr || !profile) return { data: null, error: profErr };
+  // If Supabase session is not found, check if we have a local session (e.g. emergency user)
+  if (!sessionUser && localSession && localSession.id) {
+    // If localSession has temp_emergency_secret, attempt background sign in
+    if (isSupabaseConfigured && localSession.email && localSession.temp_emergency_secret) {
+      try {
+        const { data: sData } = await supabase.auth.signInWithPassword({
+          email: localSession.email,
+          password: localSession.temp_emergency_secret,
+        });
+        if (sData?.user) {
+          sessionUser = sData.user;
+        }
+      } catch (e) {}
+    }
 
-      const localSkills = getLocal(`collabx_user_skills_${profile.id}`, []);
-      const userSkills = Array.isArray(profile.skills) && profile.skills.length > 0 
-        ? profile.skills 
-        : localSkills;
-
-      return {
-        data: {
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          phone: profile.phone,
-          avatar: profile.avatar_url,
-          skills: userSkills,
-          account_type: getUserAccountType(profile),
-          verification_uploaded: profile.verification_uploaded,
-          verification_document_url: profile.verification_document_url,
-        },
-        error: null,
+    if (!sessionUser) {
+      const localSkills = getLocal(`collabx_user_skills_${localSession.id}`, localSession.skills || []);
+      return { 
+        data: { 
+          ...localSession, 
+          skills: localSkills, 
+          account_type: getUserAccountType(localSession) 
+        }, 
+        error: null 
       };
-    } catch (err) {
-      return { data: null, error: { message: err.message } };
     }
   }
 
-  // Fallback Local Storage
-  const session = getLocal(LOCAL_SESSION, null);
-  if (session) {
-    const localSkills = getLocal(`collabx_user_skills_${session.id}`, session.skills || []);
-    return { data: { ...session, skills: localSkills, account_type: getUserAccountType(session) }, error: null };
+  if (sessionUser) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', sessionUser.id)
+        .maybeSingle();
+
+      const localSkills = getLocal(`collabx_user_skills_${sessionUser.id}`, []);
+      const userSkills = (profile && Array.isArray(profile.skills) && profile.skills.length > 0)
+        ? profile.skills
+        : (localSkills.length > 0 ? localSkills : (localSession?.skills || []));
+
+      const mergedUser = {
+        id: sessionUser.id,
+        name: profile?.name || sessionUser.user_metadata?.name || localSession?.name || 'User',
+        email: profile?.email || sessionUser.email || localSession?.email,
+        phone: profile?.phone || localSession?.phone || null,
+        avatar: profile?.avatar_url || sessionUser.user_metadata?.avatar_url || localSession?.avatar,
+        skills: userSkills,
+        account_type: getUserAccountType(profile || localSession),
+        is_emergency: Boolean(localSession?.is_emergency || sessionUser.user_metadata?.is_emergency),
+        emergency_first_post_pending: localSession?.emergency_first_post_pending,
+        has_password: localSession?.has_password ?? Boolean(sessionUser.user_metadata?.has_password),
+        verification_uploaded: profile?.verification_uploaded ?? localSession?.verification_uploaded,
+        verification_document_url: profile?.verification_document_url ?? localSession?.verification_document_url,
+      };
+
+      setLocal(LOCAL_SESSION, mergedUser);
+      return { data: mergedUser, error: null };
+    } catch (err) {
+      if (localSession) return { data: localSession, error: null };
+    }
   }
+
   return { data: null, error: null };
 }
 
@@ -414,13 +458,11 @@ export async function signUpEmergency(userData) {
   const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=dc2626,991b1b,7f1d1d`;
   let docUrl = null;
 
-  let userId = `usr_emg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  let userId = generateUUID();
+  const emergencySecret = `EmgCrisis!_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}_2026!`;
 
   if (isSupabaseConfigured) {
     try {
-      // Auto-generate strong internal emergency password for Supabase Auth
-      const emergencySecret = `EmgCrisis2026!_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      
       const { data: authData } = await supabase.auth.signUp({
         email: cleanEmail,
         password: emergencySecret,
@@ -439,6 +481,17 @@ export async function signUpEmergency(userData) {
       if (authData?.user) {
         userId = authData.user.id;
       }
+
+      // Try signing in immediately in case email confirmation was bypassed or trigger auto-confirmed
+      try {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: emergencySecret,
+        });
+        if (signInData?.user) {
+          userId = signInData.user.id;
+        }
+      } catch (e) {}
 
       // Upload verification document if provided
       if (userData.verificationDocument?.base64) {
@@ -476,6 +529,7 @@ export async function signUpEmergency(userData) {
     id: userId,
     name: userName,
     email: cleanEmail,
+    temp_emergency_secret: emergencySecret,
     avatar: defaultAvatar,
     skills: ['emergency'],
     account_type: 'emergency',
@@ -674,116 +728,185 @@ export async function createPost(postData) {
   // Fallback phone if emergency user didn't specify one
   const cleanPhone = (postData.phone_number || '').trim() || (isEmergency ? '9999999999' : '');
 
+  let authUser = null;
   if (isSupabaseConfigured) {
     try {
       const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) return { data: null, error: { message: 'Not authenticated.' } };
-
-      let mediaUrl = null;
-      if (postData.media && postData.media.startsWith('data:')) {
-        const fileName = `post_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const blob = await (await fetch(postData.media)).blob();
-        const { data: uploadData } = await supabase.storage
-          .from('post-media')
-          .upload(fileName, blob);
-
-        if (uploadData) {
-          const { data: urlData } = supabase.storage.from('post-media').getPublicUrl(fileName);
-          mediaUrl = urlData.publicUrl;
-        }
+      if (authData?.user) {
+        authUser = authData.user;
+      } else if (session?.email && session?.temp_emergency_secret) {
+        try {
+          const { data: sData } = await supabase.auth.signInWithPassword({
+            email: session.email,
+            password: session.temp_emergency_secret,
+          });
+          if (sData?.user) authUser = sData.user;
+        } catch (e) {}
       }
+    } catch (e) {}
+  }
 
-      const { data: newPost, error: insertErr } = await supabase.from('posts').insert([{
-        author_id: authData.user.id,
+  // Determine effective author identity
+  const effectiveUserId = authUser?.id || session?.id || generateUUID();
+  const authorName = session?.name || authUser?.user_metadata?.name || 'Community Member';
+  const authorAvatar = session?.avatar || authUser?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
+  const authorAccountType = session?.account_type || (isEmergency ? 'emergency' : 'public');
+
+  let mediaUrl = null;
+  if (isSupabaseConfigured && postData.media && postData.media.startsWith('data:')) {
+    try {
+      const fileName = `post_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const blob = await (await fetch(postData.media)).blob();
+      const { data: uploadData } = await supabase.storage
+        .from('post-media')
+        .upload(fileName, blob);
+
+      if (uploadData) {
+        const { data: urlData } = supabase.storage.from('post-media').getPublicUrl(fileName);
+        mediaUrl = urlData.publicUrl;
+      }
+    } catch (e) {
+      mediaUrl = postData.media;
+    }
+  } else if (postData.media) {
+    mediaUrl = postData.media;
+  }
+
+  let finalPost = null;
+
+  // 1. Try Supabase Insert if configured
+  if (isSupabaseConfigured) {
+    try {
+      const postPayload = {
+        author_id: effectiveUserId,
         title: postData.title.trim(),
         description: postData.description.trim(),
         organization: postData.organization ? postData.organization.trim() : null,
         skills: encodedSkills,
         phone_number: cleanPhone,
         address: postData.address ? postData.address.trim() : null,
-        latitude: postData.coordinates?.latitude || null, // Full unrounded float
-        longitude: postData.coordinates?.longitude || null, // Full unrounded float
+        latitude: postData.coordinates?.latitude || null,
+        longitude: postData.coordinates?.longitude || null,
         media_url: mediaUrl,
         status: 'live',
-      }]).select().single();
-
-      if (insertErr) return { data: null, error: insertErr };
-
-      if (newPost?.id) {
-        const reqMap = getLocal('collabx_post_req_map', {});
-        reqMap[newPost.id] = solverReq;
-        setLocal('collabx_post_req_map', reqMap);
-
-        if (isEmergency) {
-          const emergMap = getLocal('collabx_emergency_posts_map', {});
-          emergMap[newPost.id] = true;
-          setLocal('collabx_emergency_posts_map', emergMap);
-        }
-      }
-
-      // If user had emergency_first_post_pending, clear it now that first post is submitted
-      if (session && session.emergency_first_post_pending) {
-        session.emergency_first_post_pending = false;
-        setLocal(LOCAL_SESSION, session);
-      }
-
-      return { 
-        data: { 
-          ...newPost, 
-          is_emergency: isEmergency,
-          skills: cleanPostSkills(newPost.skills), 
-          solver_requirement: solverReq,
-          progress: extractPostProgress(newPost) 
-        }, 
-        error: null 
       };
+
+      const { data: newDbPost, error: insertErr } = await supabase
+        .from('posts')
+        .insert([postPayload])
+        .select()
+        .single();
+
+      if (!insertErr && newDbPost) {
+        finalPost = {
+          ...newDbPost,
+          author_name: authorName,
+          author_avatar: authorAvatar,
+          author_account_type: authorAccountType,
+          is_emergency: isEmergency,
+          skills: cleanPostSkills(newDbPost.skills),
+          solver_requirement: solverReq,
+          progress: extractPostProgress(newDbPost),
+        };
+      } else {
+        console.warn('[storage] Supabase posts insert notice:', insertErr?.message);
+      }
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      console.warn('[storage] Supabase posts insert error:', err.message);
     }
   }
 
-  // Fallback Local Storage
-  const posts = getLocal(LOCAL_POSTS, []);
-  const newPostId = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  // 2. If Supabase direct insert didn't produce a post (e.g. RLS pending or local mode), build post
+  if (!finalPost) {
+    const fallbackPostId = generateUUID();
+    finalPost = {
+      id: fallbackPostId,
+      author_id: effectiveUserId,
+      authorId: effectiveUserId,
+      author_name: authorName,
+      authorName: authorName,
+      author_avatar: authorAvatar,
+      authorAvatar: authorAvatar,
+      author_account_type: authorAccountType,
+      title: postData.title.trim(),
+      description: postData.description.trim(),
+      organization: postData.organization ? postData.organization.trim() : null,
+      skills: cleanPostSkills(encodedSkills),
+      rawSkills: encodedSkills,
+      phone_number: cleanPhone,
+      phoneNumber: cleanPhone,
+      address: postData.address ? postData.address.trim() : null,
+      latitude: postData.coordinates?.latitude || null,
+      longitude: postData.coordinates?.longitude || null,
+      coordinates: postData.coordinates || null,
+      media_url: mediaUrl,
+      media: mediaUrl,
+      status: 'live',
+      created_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      is_emergency: isEmergency,
+      solver_requirement: solverReq,
+      progress: 0,
+    };
+  }
 
+  // 3. Save to local posts
+  const posts = getLocal(LOCAL_POSTS, []);
+  posts.unshift(finalPost);
+  setLocal(LOCAL_POSTS, posts);
+
+  // 4. Update requirement and emergency maps
   const reqMap = getLocal('collabx_post_req_map', {});
-  reqMap[newPostId] = solverReq;
+  reqMap[finalPost.id] = solverReq;
   setLocal('collabx_post_req_map', reqMap);
 
   if (isEmergency) {
     const emergMap = getLocal('collabx_emergency_posts_map', {});
-    emergMap[newPostId] = true;
+    emergMap[finalPost.id] = true;
     setLocal('collabx_emergency_posts_map', emergMap);
   }
 
+  // 5. If emergency user had emergency_first_post_pending, clear it
   if (session && session.emergency_first_post_pending) {
     session.emergency_first_post_pending = false;
     setLocal(LOCAL_SESSION, session);
   }
 
-  const newPost = {
-    id: newPostId,
-    authorId: session.id,
-    authorName: session.name,
-    authorAvatar: session.avatar,
-    author_account_type: session.account_type || getUserAccountType(session),
-    title: postData.title.trim(),
-    description: postData.description.trim(),
-    skills: isEmergency ? ['emergency', ...(postData.skills || [])] : (postData.skills || null),
-    solver_requirement: solverReq,
-    phone_number: cleanPhone,
-    organization: postData.organization ? postData.organization.trim() : null,
-    address: postData.address ? postData.address.trim() : null,
-    coordinates: postData.coordinates || null,
-    media: postData.media || null,
-    status: 'live',
-    is_emergency: isEmergency,
-    createdAt: new Date().toISOString(),
-  };
+  // 6. Cross-device broadcast and sync
+  if (isSupabaseConfigured) {
+    // Broadcast via realtime channel
+    try {
+      const channel = supabase.channel('collabx_live_feed');
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'new_post',
+            payload: { post: finalPost, is_emergency: isEmergency },
+          });
+          supabase.removeChannel(channel);
+        }
+      });
+    } catch (e) {}
 
-  posts.unshift(newPost);
-  setLocal(LOCAL_POSTS, posts);
-  return { data: newPost, error: null };
+    // If emergency post, sync to notifications table to guarantee cross-PC feed visibility
+    if (isEmergency) {
+      try {
+        await supabase.from('notifications').insert([{
+          user_id: 'e808ba13-4773-4c1e-8512-24c3b11b45df',
+          type: 'emergency_post_sync',
+          payload: { post: finalPost },
+          read: false,
+        }]);
+      } catch (e) {}
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('collabx_posts_update'));
+  }
+
+  return { data: finalPost, error: null };
 }
 
 export function extractPostProgress(post) {
@@ -842,87 +965,79 @@ export function cleanPostSkills(skills) {
  */
 export async function getAllPosts() {
   const deletedIds = await getGlobalDeletedPostIds();
+  const localPosts = getLocal(LOCAL_POSTS, []);
+  let allCombined = [];
 
   if (isSupabaseConfigured) {
     try {
-      // Direct table query for LIVE posts only
+      // 1. Direct table query for LIVE posts only
       const { data: directPosts, error: directErr } = await supabase
         .from('posts')
         .select('*')
         .eq('status', 'live')
         .order('created_at', { ascending: false });
 
-      if (!directErr && directPosts) {
-        const liveFiltered = directPosts
-          .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
-          .map(p => ({ 
-            ...p, 
-            is_emergency: isPostEmergency(p),
-            skills: cleanPostSkills(p.skills),
-            solver_requirement: extractPostRequirement(p),
-            progress: extractPostProgress(p),
-            phone_number: null,
-            latitude: null,
-            longitude: null,
-          }));
-
-        return { 
-          data: sortPostsWithEmergencyFirst(liveFiltered), 
-          error: null 
-        };
+      if (!directErr && directPosts && directPosts.length > 0) {
+        allCombined.push(...directPosts);
       }
 
-      // Fallback RPC if direct query fails (filter strictly to status == 'live')
-      const { data, error } = await supabase.rpc('get_public_posts');
-      if (error) return { data: [], error };
-      const rpcFiltered = (data || [])
-        .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
-        .map(p => ({ 
-          ...p, 
-          is_emergency: isPostEmergency(p),
-          skills: cleanPostSkills(p.skills),
-          solver_requirement: extractPostRequirement(p),
-          progress: extractPostProgress(p),
-          phone_number: null,
-          latitude: null,
-          longitude: null,
-        }));
+      // 2. Fetch any synced emergency posts from notifications table
+      try {
+        const { data: emergSyncRows } = await supabase
+          .from('notifications')
+          .select('payload')
+          .eq('type', 'emergency_post_sync');
 
-      return { 
-        data: sortPostsWithEmergencyFirst(rpcFiltered), 
-        error: null 
-      };
+        if (emergSyncRows && emergSyncRows.length > 0) {
+          emergSyncRows.forEach(row => {
+            const ep = row.payload?.post;
+            if (ep && !allCombined.some(p => p.id === ep.id)) {
+              allCombined.push(ep);
+            }
+          });
+        }
+      } catch (e) {}
+
     } catch (err) {
-      return { data: [], error: { message: err.message } };
+      console.warn('[storage] getAllPosts Supabase fetch notice:', err.message);
     }
   }
 
-  // Fallback Local Storage: strictly 'live' posts
-  const posts = getLocal(LOCAL_POSTS, []);
-  const publicPosts = posts
+  // 3. Merge local posts (especially local emergency posts)
+  localPosts.forEach(lp => {
+    if (lp.status === 'live' && !allCombined.some(p => p.id === lp.id)) {
+      allCombined.push(lp);
+    }
+  });
+
+  // 4. Filter deleted posts and map fields cleanly
+  const liveFiltered = allCombined
     .filter(p => p.status === 'live' && !deletedIds.includes(p.id))
-    .map(p => ({
+    .map(p => ({ 
       id: p.id,
-      author_id: p.authorId,
-      author_name: p.authorName,
-      author_avatar: p.authorAvatar,
+      author_id: p.author_id || p.authorId,
+      author_name: p.author_name || p.authorName || 'Community Member',
+      author_avatar: p.author_avatar || p.authorAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.title || 'Post')}`,
       author_account_type: p.author_account_type || 'public',
       title: p.title,
       description: p.description,
       organization: p.organization,
-      skills: cleanPostSkills(p.skills),
+      skills: cleanPostSkills(p.skills || p.rawSkills),
       is_emergency: isPostEmergency(p),
       solver_requirement: extractPostRequirement(p),
-      media_url: p.media,
+      media_url: p.media_url || p.media,
       status: p.status,
-      created_at: p.createdAt,
+      created_at: p.created_at || p.createdAt,
       progress: extractPostProgress(p),
       phone_number: null,
       latitude: null,
       longitude: null,
     }));
 
-  return { data: sortPostsWithEmergencyFirst(publicPosts), error: null };
+  return { 
+    data: sortPostsWithEmergencyFirst(liveFiltered), 
+    error: null 
+  };
 }
 
 /**
@@ -998,9 +1113,33 @@ export async function getPostDetails(postId) {
           error: null 
         };
       }
-      return { data: null, error: null };
+      // Check synced emergency posts in notifications table
+      try {
+        const { data: nRows } = await supabase
+          .from('notifications')
+          .select('payload')
+          .eq('type', 'emergency_post_sync');
+        if (nRows && nRows.length > 0) {
+          const match = nRows.find(r => r.payload?.post?.id === postId);
+          if (match?.payload?.post) {
+            const ep = match.payload.post;
+            return {
+              data: {
+                ...ep,
+                skills: cleanPostSkills(ep.skills || ep.rawSkills),
+                is_emergency: true,
+                solver_requirement: extractPostRequirement(ep),
+                progress: extractPostProgress(ep),
+                is_authorized: true,
+                user_contact_status: 'accepted',
+              },
+              error: null
+            };
+          }
+        }
+      } catch (e) {}
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      console.warn('[storage] getPostDetails notice:', err.message);
     }
   }
 

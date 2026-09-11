@@ -14,6 +14,7 @@ import {
   completePost, 
   updatePostProgress 
 } from '../lib/storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { useApp } from '../context/AppContext';
 
 const FeedPage = () => {
@@ -53,6 +54,31 @@ const FeedPage = () => {
 
   useEffect(() => {
     loadFeedData();
+
+    const handleFeedUpdate = () => {
+      loadFeedData();
+    };
+    window.addEventListener('collabx_posts_update', handleFeedUpdate);
+    window.addEventListener('storage', handleFeedUpdate);
+
+    let channel = null;
+    if (isSupabaseConfigured) {
+      channel = supabase
+        .channel('collabx_live_feed')
+        .on('broadcast', { event: 'new_post' }, () => {
+          loadFeedData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+          loadFeedData();
+        })
+        .subscribe();
+    }
+
+    return () => {
+      window.removeEventListener('collabx_posts_update', handleFeedUpdate);
+      window.removeEventListener('storage', handleFeedUpdate);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [loadFeedData]);
 
   useEffect(() => {

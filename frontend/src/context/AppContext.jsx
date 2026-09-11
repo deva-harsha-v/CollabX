@@ -9,7 +9,8 @@ import {
   createPost as apiCreatePost,
   getPostsByUser,
   getMyIdeas,
-  syncDeletedPostsForUser
+  syncDeletedPostsForUser,
+  getLocal
 } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
@@ -181,13 +182,25 @@ export const AppProvider = ({ children }) => {
   };
 
   const addNewPost = async (postData) => {
-    if (!currentUser) return { data: null, error: { message: 'Must be logged in to post' } };
+    let user = currentUser;
+    if (!user) {
+      const local = getLocal('collabx_session', null);
+      if (local?.id) {
+        user = local;
+        setCurrentUser(local);
+      }
+    }
+    if (!user) return { data: null, error: { message: 'Must be logged in to post' } };
 
-    const { data: newPost, error: postErr } = await apiCreatePost(postData);
+    const isEmg = Boolean(postData.is_emergency || user.is_emergency || user.emergency_first_post_pending);
+    const { data: newPost, error: postErr } = await apiCreatePost({
+      ...postData,
+      is_emergency: isEmg,
+    });
     if (postErr) return { data: null, error: postErr };
 
     // Refresh feed
-    refreshPosts();
+    await refreshPosts();
     return { data: newPost, error: null };
   };
 
