@@ -371,9 +371,9 @@ const AuthPage = () => {
         type="button"
         onClick={() => { setShowAdminModal(true); setAdminError(''); }}
         title="Admin Supervisory Portal"
-        className="fixed bottom-5 right-5 z-40 p-3 rounded-full bg-[#1A3D63]/90 hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] hover:text-red-400 shadow-2xl backdrop-blur-md transition-all hover:scale-110 group"
+        className="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-[#1A3D63]/90 hover:bg-red-950/80 border-2 border-red-500/50 text-red-400 hover:text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.45)] backdrop-blur-md transition-all hover:scale-110 group"
       >
-        <ShieldAlert className="w-5 h-5 text-[#B3CFE5] group-hover:text-red-400" />
+        <ShieldAlert className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
       </button>
 
       {/* Admin Sign In Modal */}
@@ -395,7 +395,7 @@ const AuthPage = () => {
                 <h3 className="text-xl font-bold font-['Outfit'] text-[#F6FAFD]">
                   Admin Supervisory Portal
                 </h3>
-                <p className="text-xs text-red-300 font-mono">Restricted Management Access</p>
+                <p className="text-xs text-red-300 font-mono">Assigned Owner / Admin Access</p>
               </div>
             </div>
 
@@ -439,6 +439,21 @@ const AuthPage = () => {
                     className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931] border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-red-400 transition-colors font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Quick Fill Helper for Assigned Credentials */}
+              <div className="pt-1 flex justify-between items-center text-[11px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminEmail('admin@collabx.org');
+                    setAdminPassword('AdminCollabX2026!Secure');
+                  }}
+                  className="text-red-400 hover:text-red-300 underline cursor-pointer"
+                >
+                  Fill Assigned Credentials
+                </button>
+                <span className="text-[#B3CFE5]/60">Single Set Credentials</span>
               </div>
 
               <div className="pt-2">

@@ -1662,9 +1662,37 @@ export async function getAllAdminChatRooms() {
 }
 
 /**
+ * Admin: Fetch all contact requests / solver proposals / ideas
+ */
+export async function getAllAdminContactRequests() {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('contact_requests')
+        .select('*, posts:post_id(id, title, author_id, status)')
+        .order('created_at', { ascending: false });
+
+      return { data: data || [], error };
+    } catch (err) {
+      return { data: [], error: { message: err.message } };
+    }
+  }
+
+  const contacts = getLocal(LOCAL_CONTACTS, []);
+  const posts = getLocal(LOCAL_POSTS, []);
+  const populated = contacts.map(c => ({
+    ...c,
+    posts: posts.find(p => p.id === c.post_id),
+  }));
+  return { data: populated, error: null };
+}
+
+/**
  * Admin: Delete a post with a mandatory reason, and notify the author
  */
 export async function adminDeletePost(postId, authorId, postTitle, reason) {
+  const notificationMsg = `Your post has been removed by the admin for: ${reason}`;
+
   if (isSupabaseConfigured) {
     try {
       // 1. Update post status to deleted
@@ -1683,7 +1711,7 @@ export async function adminDeletePost(postId, authorId, postTitle, reason) {
           payload: {
             post_id: postId,
             post_title: postTitle,
-            message: `Your challenge "${postTitle}" was removed by the administrator. Reason: ${reason}`,
+            message: notificationMsg,
             reason: reason,
           },
           read: false,
@@ -1703,7 +1731,7 @@ export async function adminDeletePost(postId, authorId, postTitle, reason) {
 
   if (authorId) {
     await addNotification(authorId, {
-      message: `Your challenge "${postTitle}" was removed by the administrator. Reason: ${reason}`,
+      message: notificationMsg,
       type: 'admin_post_removed',
       payload: {
         post_id: postId,

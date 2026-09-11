@@ -44,10 +44,10 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
 
   const getProgressStage = (pct) => {
     if (pct >= 100) return { label: 'Resolved & Completed', color: 'text-emerald-300 border-emerald-500/40 bg-emerald-950/60' };
-    if (pct >= 75) return { label: 'Testing & Review', color: 'text-[#B3CFE5] border-[#4A7FA7]/60 bg-[#0A1931]/80' };
-    if (pct >= 50) return { label: 'Solution in Progress', color: 'text-[#B3CFE5] border-[#4A7FA7]/60 bg-[#0A1931]/80' };
-    if (pct >= 25) return { label: 'Active Collaboration', color: 'text-[#B3CFE5] border-[#4A7FA7]/60 bg-[#0A1931]/80' };
-    return { label: 'Open for Collaboration', color: 'text-[#B3CFE5]/80 border-[#4A7FA7]/40 bg-[#0A1931]/60' };
+    if (pct >= 75) return { label: 'Testing & Review', color: 'text-red-300 border-red-500/50 bg-red-950/60' };
+    if (pct >= 50) return { label: 'Solution in Progress', color: 'text-red-300 border-red-500/50 bg-red-950/60' };
+    if (pct >= 25) return { label: 'Active Collaboration', color: 'text-red-300 border-red-500/50 bg-red-950/60' };
+    return { label: 'Open for Collaboration', color: 'text-red-300/80 border-red-500/40 bg-red-950/40' };
   };
 
   const currentStage = getProgressStage(localProgress);
@@ -120,13 +120,13 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
             {/* Actions Block */}
             <div className="flex flex-col sm:flex-row items-center gap-2">
 
-              {/* "Review" Button (Opens Detail View) */}
+              {/* "Review" Button (Opens Detail View) — Styled Red */}
               <button
                 type="button"
                 onClick={() => setIsDetailOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#F6FAFD] font-['Outfit'] font-semibold text-xs transition-all shadow-md hover:scale-105"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border border-red-400/50 text-white font-['Outfit'] font-bold text-xs transition-all shadow-md shadow-red-950/50 hover:shadow-red-600/30 hover:scale-105"
               >
-                <Eye className="w-4 h-4 text-[#B3CFE5]" />
+                <Eye className="w-4 h-4 text-white" />
                 <span>Review</span>
               </button>
 
@@ -163,12 +163,12 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
           </div>
         </div>
 
-        {/* Live Glowing Progress Bar — ALWAYS VISIBLE ACROSS ALL PAGES FOR ALL USERS */}
+        {/* Live Glowing Red Progress Bar — ALWAYS VISIBLE ACROSS ALL PAGES FOR ALL USERS */}
         <div className="mt-4 pt-3 border-t border-[#4A7FA7]/30">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-mono text-[#F6FAFD] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse" />
                 <span>{isAuthorView ? 'Resolution Progress (Author Control)' : 'Resolution Progress'}</span>
               </span>
               <span className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-semibold ${currentStage.color}`}>
@@ -176,24 +176,24 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
               </span>
             </div>
             
-            {/* Glowing Percentage Badge */}
-            <div className="px-2.5 py-0.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/80 text-[#B3CFE5] text-xs font-mono font-black shadow-[0_0_12px_rgba(179,207,229,0.3)]">
+            {/* Glowing Red Percentage Badge */}
+            <div className="px-2.5 py-0.5 rounded-full bg-[#0A1931] border border-red-500/80 text-red-400 text-xs font-mono font-black shadow-[0_0_12px_rgba(239,68,68,0.35)]">
               {localProgress}%
             </div>
           </div>
 
-          {/* Glowing Track & Fill */}
-          <div className="relative w-full h-3 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 p-[1.5px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
+          {/* Glowing Red Track & Fill */}
+          <div className="relative w-full h-3 rounded-full bg-[#0A1931] border border-red-950/70 p-[1.5px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#1A3D63] via-[#4A7FA7] to-[#B3CFE5] transition-all duration-500 relative"
+              className="h-full rounded-full bg-gradient-to-r from-red-950 via-red-600 to-red-500 transition-all duration-500 relative"
               style={{
                 width: `${Math.max(localProgress, 2)}%`,
-                boxShadow: localProgress > 0 ? '0 0 14px rgba(179, 207, 229, 0.9), 0 0 24px rgba(74, 127, 167, 0.7)' : 'none'
+                boxShadow: localProgress > 0 ? '0 0 14px rgba(239, 68, 68, 0.9), 0 0 24px rgba(220, 38, 38, 0.7)' : 'none'
               }}
             >
               {/* Glowing Beacon Head */}
               {localProgress > 5 && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_8px_#F6FAFD] animate-ping opacity-75" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_8px_#ef4444] animate-ping opacity-75" />
               )}
             </div>
           </div>
@@ -208,7 +208,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                 step="5"
                 value={localProgress}
                 onChange={handleProgressChange}
-                className="w-full accent-[#B3CFE5] cursor-pointer h-1.5 bg-[#0A1931] rounded-lg"
+                className="w-full accent-red-500 cursor-pointer h-1.5 bg-[#0A1931] rounded-lg"
               />
               <div className="flex items-center gap-1 shrink-0 self-end sm:self-center">
                 {[25, 50, 75, 100].map((preset) => (
@@ -218,8 +218,8 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                     onClick={() => handlePresetClick(preset)}
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border transition-all ${
                       localProgress === preset
-                        ? 'bg-[#4A7FA7] text-[#F6FAFD] border-[#B3CFE5]'
-                        : 'bg-[#0A1931] text-[#B3CFE5] border-[#4A7FA7]/40 hover:bg-[#1A3D63]'
+                        ? 'bg-red-600 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                        : 'bg-[#0A1931] text-red-300/80 border-red-500/30 hover:bg-red-950/50 hover:text-red-200'
                     }`}
                   >
                     {preset}%
