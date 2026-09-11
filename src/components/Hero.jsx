@@ -40,7 +40,7 @@ const Hero = () => {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1A3D63]/90 border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs sm:text-sm font-medium mb-6 shadow-[0_0_20px_rgba(74,127,167,0.2)] backdrop-blur-md">
               <span className="flex h-2 w-2 rounded-full bg-[#B3CFE5] animate-ping" />
               <Sparkles className="w-4 h-4 text-[#B3CFE5]" />
-              <span>Bridging Civic Challenges With Verified Brainpower</span>
+              <span>Bridging Tough Challenges With Verified Brainpower</span>
             </div>
           </Reveal>
 
@@ -49,7 +49,7 @@ const Hero = () => {
             <h1 className="font-['Outfit'] font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-[#F6FAFD] leading-[1.12] mb-6">
               Turning Real-World <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4A7FA7] via-[#B3CFE5] to-[#F6FAFD]">
-                Civic Problems
+                Tough Challenges
               </span>{' '}
               Into Solutions
             </h1>
@@ -58,7 +58,7 @@ const Hero = () => {
           {/* Left-Aligned Subtext (max-width ~500px) */}
           <Reveal animation="fade-up" delay={300}>
             <p className="text-base sm:text-lg text-[#B3CFE5] font-normal max-w-[500px] leading-relaxed mb-8">
-              A trusted platform connecting citizens, NGOs, and government bodies with verified university researchers and industry innovators to resolve societal challenges together.
+              A trusted platform connecting organizations, teams, and problem creators with verified researchers and industry specialists to solve technical, operational, and community challenges together.
             </p>
           </Reveal>
 

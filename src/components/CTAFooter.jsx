@@ -39,7 +39,7 @@ const CTAFooter = () => {
 
           <Reveal animation="fade-up" delay={150}>
             <h2 className="font-['Outfit'] font-black text-4xl sm:text-5xl md:text-6xl text-[#F6FAFD] tracking-tight leading-[1.08] mb-6">
-              Have a Crisis to Solve or the{' '}
+              Have a Challenge to Solve or the{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4A7FA7] via-[#B3CFE5] to-[#F6FAFD]">
                 Genius to Solve It?
               </span>
@@ -49,7 +49,7 @@ const CTAFooter = () => {
           {/* Short Closing Tagline */}
           <Reveal animation="fade-up" delay={250}>
             <p className="text-base sm:text-xl text-[#B3CFE5] max-w-2xl font-light leading-relaxed mb-8">
-              Join the CollabX network. Where verified university labs and industry minds turn community emergencies into solved history.
+              Join the CollabX network. Where verified university labs and industry minds turn complex challenges into solved history.
             </p>
           </Reveal>
 
@@ -65,7 +65,7 @@ const CTAFooter = () => {
               </button>
 
               <span className="text-xs text-[#B3CFE5]/80 mt-3 font-mono">
-                🔒 Free for NGOs & Academic Researchers • Verified Onboarding
+                🔒 Free for Innovators, Organizations & Academic Researchers • Verified Onboarding
               </span>
             </div>
           </Reveal>

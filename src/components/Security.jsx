@@ -42,7 +42,7 @@ const Security = () => {
 
           <Reveal animation="fade-up" delay={250}>
             <p className="text-base sm:text-lg text-[#B3CFE5] leading-relaxed">
-              Civic problems deal with public infrastructure, healthcare, and community safety. CollabX enforces three strict cryptographic trust barriers so only genuine authority enters the arena.
+              Real challenges deal with mission-critical systems, technical infrastructure, data privacy, and organizational goals. CollabX enforces three strict cryptographic trust barriers so only genuine authority enters the arena.
             </p>
           </Reveal>
         </div>

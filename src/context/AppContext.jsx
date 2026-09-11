@@ -9,6 +9,7 @@ import {
   getPostsByUser,
   getMyIdeas
 } from '../lib/storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const AppContext = createContext(null);
 
@@ -62,6 +63,37 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (currentUser?.id) {
       refreshNotifications(currentUser.id);
+
+      // Polling interval every 8 seconds for notifications
+      const interval = setInterval(() => {
+        refreshNotifications(currentUser.id);
+      }, 8000);
+
+      // Supabase Realtime subscription on notifications table
+      let channel;
+      if (isSupabaseConfigured) {
+        channel = supabase
+          .channel(`user_notifs_${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${currentUser.id}`,
+            },
+            (payload) => {
+              const newNotif = payload.new;
+              setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+            }
+          )
+          .subscribe();
+      }
+
+      return () => {
+        clearInterval(interval);
+        if (channel) supabase.removeChannel(channel);
+      };
     } else {
       setNotifications([]);
     }

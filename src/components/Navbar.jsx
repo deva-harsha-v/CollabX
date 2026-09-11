@@ -149,20 +149,36 @@ const Navbar = () => {
               <span className="font-['Outfit'] font-black text-lg sm:text-xl tracking-tight text-[#F6FAFD] flex items-center">
                 Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4A7FA7] to-[#B3CFE5]">X</span>
               </span>
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#B3CFE5]/80 font-mono -mt-1 font-semibold">Civic Grid</span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#B3CFE5]/80 font-mono -mt-1 font-semibold">Challenge Grid</span>
             </div>
           </Link>
 
           {/* Navigation Links - Conditional for Logged Out vs Logged In */}
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#B3CFE5]">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#B3CFE5]">
             {currentUser ? (
-              <Link
-                to="/feed"
-                onClick={() => setFeedFilter('all')}
-                className="text-[#F6FAFD] font-semibold flex items-center gap-1.5 hover:text-[#B3CFE5] transition-colors border-b border-[#4A7FA7]/60 pb-0.5"
-              >
-                <Sparkles className="w-4 h-4 text-[#B3CFE5]" /> Live Feed
-              </Link>
+              <>
+                <Link
+                  to="/feed"
+                  onClick={() => setFeedFilter('all')}
+                  className={`font-semibold flex items-center gap-1.5 transition-colors pb-0.5 ${
+                    location.pathname === '/feed'
+                      ? 'text-[#F6FAFD] border-b border-[#4A7FA7]'
+                      : 'text-[#B3CFE5] hover:text-[#F6FAFD]'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-[#B3CFE5]" /> Live Feed
+                </Link>
+                <Link
+                  to="/messages"
+                  className={`font-semibold flex items-center gap-1.5 transition-colors pb-0.5 ${
+                    location.pathname === '/messages'
+                      ? 'text-[#F6FAFD] border-b border-[#4A7FA7]'
+                      : 'text-[#B3CFE5] hover:text-[#F6FAFD]'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4 text-[#B3CFE5]" /> Messages
+                </Link>
+              </>
             ) : (
               <>
                 <Link to="/" className="hover:text-[#F6FAFD] transition-all duration-300 border-b border-transparent hover:border-[#4A7FA7]/60 pb-0.5">The Mission</Link>
@@ -174,15 +190,18 @@ const Navbar = () => {
 
           {/* Right Section: Auth State dependent UI */}
           {currentUser ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
 
-              {/* Messages Icon Button */}
+              {/* Messages Icon Button with Unread Badge */}
               <Link
                 to="/messages"
                 className="relative p-2 rounded-xl bg-[#0A1931]/80 hover:bg-[#1A3D63] border border-[#4A7FA7]/30 text-[#B3CFE5] hover:text-[#F6FAFD] transition-colors"
                 aria-label="Messages"
               >
                 <MessageSquare className="w-5 h-5 text-[#B3CFE5]" />
+                {notifications.filter(n => !n.read && n.type === 'chat_message').length > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
+                )}
               </Link>
 
               {/* Notification Bell Button */}
@@ -271,6 +290,15 @@ const Navbar = () => {
                       <p className="font-bold text-[#F6FAFD] truncate">{currentUser.name}</p>
                       <p className="text-[10px] text-[#B3CFE5]/80 font-mono truncate">{currentUser.email}</p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { setShowProfileMenu(false); navigate('/messages'); }}
+                      className="w-full px-3.5 py-2 text-left text-[#B3CFE5] hover:text-[#F6FAFD] hover:bg-[#4A7FA7]/30 flex items-center gap-2 transition-colors font-medium"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                      <span>Messages</span>
+                    </button>
 
                     <button
                       type="button"

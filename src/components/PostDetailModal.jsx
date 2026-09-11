@@ -306,21 +306,21 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
               {/* Persistent, Scroll-Reactive "Contact" Button */}
               {currentUser && contactStatus !== 'author' && (
                 <div 
-                  className="sticky bottom-0 pt-4 pb-2 bg-gradient-to-t from-[#1A3D63] via-[#1A3D63]/90 to-transparent flex justify-end z-20"
+                  className="sticky bottom-0 pt-4 pb-2 bg-gradient-to-t from-[#1A3D63] via-[#1A3D63]/90 to-transparent flex justify-center sm:justify-end z-20"
                   style={{ transform: `translateY(-${scrollOffset}px)`, transition: 'transform 0.15s ease-out' }}
                 >
                   {contactStatus === 'pending' ? (
-                    <div className="px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 text-[#B3CFE5] font-mono text-xs font-bold flex items-center gap-2 shadow-lg">
+                    <div className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 text-[#B3CFE5] font-mono text-xs font-bold flex items-center gap-2 shadow-lg">
                       <Clock className="w-4 h-4 text-[#B3CFE5] animate-pulse" />
                       <span>Contact Request Pending Poster Review</span>
                     </div>
                   ) : contactStatus === 'accepted' ? (
-                    <div className="px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 text-[#B3CFE5] font-mono text-xs font-bold flex items-center gap-2 shadow-lg">
+                    <div className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 text-[#B3CFE5] font-mono text-xs font-bold flex items-center gap-2 shadow-lg">
                       <CheckCircle2 className="w-4 h-4 text-[#B3CFE5]" />
                       <span>Connected — Solver Access Granted</span>
                     </div>
                   ) : contactStatus === 'rejected' ? (
-                    <div className="px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/30 text-[#B3CFE5]/60 font-mono text-xs font-medium">
+                    <div className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-[#0A1931] border border-[#4A7FA7]/30 text-[#B3CFE5]/60 font-mono text-xs font-medium">
                       <span>Request Not Selected</span>
                     </div>
                   ) : (
@@ -329,7 +329,7 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                       type="button"
                       onClick={handleContactClick}
                       disabled={isSubmittingContact}
-                      className="red-pill-button px-8 py-3.5 text-sm font-bold shadow-xl flex items-center gap-2 transition-transform hover:scale-105"
+                      className="w-full sm:w-auto justify-center red-pill-button px-8 py-3.5 text-sm font-bold shadow-xl flex items-center gap-2 transition-transform hover:scale-105"
                     >
                       <Send className="w-4 h-4" />
                       <span>{isSubmittingContact ? 'Sending Request...' : 'Contact Poster & Request Access'}</span>

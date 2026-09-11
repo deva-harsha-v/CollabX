@@ -17,7 +17,7 @@ const Mission = () => {
           <Reveal animation="fade-down">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A3D63]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs font-mono uppercase tracking-wider mb-4 shadow-md backdrop-blur-md">
               <HelpCircle className="w-3.5 h-3.5 text-[#B3CFE5]" />
-              <span>The Civic Disconnect</span>
+              <span>The Problem-Solver Disconnect</span>
             </div>
           </Reveal>
 
@@ -32,14 +32,14 @@ const Mission = () => {
 
           <Reveal animation="fade-up" delay={250}>
             <p className="text-base sm:text-lg text-[#B3CFE5] leading-relaxed">
-              Every day, citizens, grassroots NGOs, and overburdened municipal departments identify real-world emergencies. Yet without direct pipelines to specialized researchers and industry engineers, these issues linger in isolation.
+              Every day, innovators, organizations, and frontline teams identify pressing challenges across tech, operations, and community needs. Yet without direct pipelines to specialized researchers and engineers, these issues stall in isolation.
             </p>
           </Reveal>
         </div>
 
         {/* 3-Column Glassmorphic Problem -> Mission Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Card 1: The Civic Need */}
+          {/* Card 1: The Unaddressed Need */}
           <Reveal animation="fade-up" delay={100} className="h-full">
             <div className="relative h-full p-8 rounded-3xl bg-[#1A3D63]/80 border border-[#4A7FA7]/30 hover:border-[#4A7FA7]/60 transition-all duration-300 hover:-translate-y-2 group shadow-xl backdrop-blur-xl">
               <div className="w-14 h-14 rounded-2xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center text-[#B3CFE5] mb-6 group-hover:scale-110 transition-all">
@@ -51,16 +51,16 @@ const Mission = () => {
               </span>
 
               <h3 className="font-['Outfit'] font-bold text-2xl text-[#F6FAFD] mb-4 group-hover:text-[#B3CFE5] transition-colors">
-                Grassroots Invisibility
+                Frontline Invisibility
               </h3>
 
               <p className="text-sm text-[#B3CFE5]/90 leading-relaxed mb-6">
-                Citizens and localized NGOs experience frontline failures — contamination, traffic hazards, climate disasters — but lack access to institutional labs, computational power, and scientific domain specialists.
+                Teams and community leaders face complex hurdles — software bottlenecks, hardware hurdles, sustainability crises — but lack immediate access to specialized labs, computational power, and scientific talent.
               </p>
 
               <div className="pt-4 border-t border-[#4A7FA7]/25 flex items-center justify-between text-xs text-[#B3CFE5]/70 font-mono">
                 <span>Stalled Initiatives:</span>
-                <span className="font-bold text-[#F6FAFD]">84% Lack Technical Teams</span>
+                <span className="font-bold text-[#F6FAFD]">84% Lack Specialized Teams</span>
               </div>
             </div>
           </Reveal>
@@ -77,11 +77,11 @@ const Mission = () => {
               </span>
 
               <h3 className="font-['Outfit'] font-bold text-2xl text-[#F6FAFD] mb-4 group-hover:text-[#B3CFE5] transition-colors">
-                Siloed Academic R&D
+                Siloed Expert R&D
               </h3>
 
               <p className="text-sm text-[#B3CFE5]/90 leading-relaxed mb-6">
-                Elite professors, PhD scholars, and corporate researchers possess unmatched technical competence, but their discoveries often remain confined to journals rather than tangible civic deployments.
+                Elite professors, PhD scholars, and corporate researchers possess unmatched technical competence, but their discoveries often remain confined to academic papers rather than live deployments.
               </p>
 
               <div className="pt-4 border-t border-[#4A7FA7]/25 flex items-center justify-between text-xs text-[#B3CFE5]/70 font-mono">
@@ -103,11 +103,11 @@ const Mission = () => {
               </span>
 
               <h3 className="font-['Outfit'] font-bold text-2xl text-[#F6FAFD] mb-4 group-hover:text-[#B3CFE5] transition-colors">
-                Verified Civic Synthesis
+                Verified Synthesis
               </h3>
 
               <p className="text-sm text-[#B3CFE5]/90 leading-relaxed mb-6">
-                CollabX establishes a verified pipeline. We validate real problem briefs, vet solver credentials through rigorous document review, and oversee collaborative milestones until the civic problem is solved.
+                CollabX establishes a verified pipeline. We validate real problem briefs, vet solver credentials through rigorous document review, and oversee collaborative milestones until the challenge is solved.
               </p>
 
               <div className="pt-4 border-t border-[#4A7FA7]/25 flex items-center justify-between text-xs text-[#B3CFE5]/70 font-mono">

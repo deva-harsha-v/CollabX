@@ -161,7 +161,7 @@ const FeedPage = () => {
                 className="red-pill-button px-6 py-3 text-sm font-bold"
               >
                 <Plus className="w-4 h-4 ml-0 mr-2 inline" />
-                <span>Post a Civic Challenge</span>
+                <span>Post a Challenge</span>
               </button>
             )}
           </div>

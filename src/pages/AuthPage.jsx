@@ -145,7 +145,7 @@ const AuthPage = () => {
           <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#F6FAFD] flex items-center">
             Collab<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4A7FA7] to-[#B3CFE5]">X</span>
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-[#B3CFE5]/80 font-mono -mt-1 font-semibold">Civic Grid</span>
+          <span className="text-[9px] uppercase tracking-widest text-[#B3CFE5]/80 font-mono -mt-1 font-semibold">Challenge Grid</span>
         </div>
       </Link>
 
@@ -186,8 +186,8 @@ const AuthPage = () => {
           </h2>
           <p className="text-xs text-[#B3CFE5]/80 mt-1">
             {mode === 'signup'
-              ? 'Universal account for civic problem solvers & community partners'
-              : 'Enter your credentials to access the verified feed'}
+              ? 'Universal account for problem solvers, researchers & innovators'
+              : 'Enter your credentials to access the verified challenge feed'}
           </p>
         </div>
 

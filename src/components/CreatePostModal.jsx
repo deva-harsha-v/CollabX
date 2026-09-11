@@ -124,7 +124,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     setErrorMsg('');
 
     if (!title.trim()) {
-      setErrorMsg('Please enter a title for the civic challenge.');
+      setErrorMsg('Please enter a title for the challenge.');
       return;
     }
     if (!description.trim()) {
@@ -182,8 +182,8 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold font-['Outfit'] text-[#F6FAFD]">Post a Civic Challenge</h3>
-            <p className="text-xs text-[#B3CFE5] font-mono tracking-wider uppercase">Dispatch to Verified Solvers</p>
+            <h3 className="text-2xl font-bold font-['Outfit'] text-[#F6FAFD]">Post a Challenge</h3>
+            <p className="text-xs text-[#B3CFE5] font-mono tracking-wider uppercase">Publish to Verified Solvers</p>
           </div>
         </div>
 
@@ -391,7 +391,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
               disabled={isSubmitting}
               className="w-full red-pill-button py-3 text-base font-bold shadow-lg disabled:opacity-50"
             >
-              <span>{isSubmitting ? 'Dispatching Post...' : 'Dispatch Civic Challenge'}</span>
+              <span>{isSubmitting ? 'Posting Challenge...' : 'Post Challenge'}</span>
             </button>
           </div>
         </form>

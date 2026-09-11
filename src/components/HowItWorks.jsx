@@ -16,9 +16,9 @@ import Reveal from './Reveal';
 const steps = [
   {
     number: '01',
-    title: 'Post a Civic Challenge',
-    actor: 'Citizens • NGOs • Municipal Bodies',
-    desc: 'Articulate the societal crisis with verifiable parameters, impact milestones, raw sensor data, and geographic boundaries. CollabX structures the brief into an actionable technical RFP.',
+    title: 'Post a Challenge Brief',
+    actor: 'Organizations • Teams • Innovators',
+    desc: 'Articulate the problem with verifiable parameters, impact milestones, technical specs, and constraints. CollabX structures the brief into an actionable technical RFP.',
     icon: FileText,
     microCard: (
       <div className="mt-4 p-4 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/30 text-xs">

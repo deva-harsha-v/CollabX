@@ -86,7 +86,7 @@ const ContactRequestReviewModal = ({ notification, isOpen, onClose, onRefresh })
               <UserCheck className="w-3.5 h-3.5 text-[#B3CFE5]" />
             </h4>
             <p className="text-xs text-[#B3CFE5]/80 font-mono">
-              Request for: <span className="text-[#F6FAFD] font-semibold">{payload.post_title || 'Civic Challenge'}</span>
+              Request for: <span className="text-[#F6FAFD] font-semibold">{payload.post_title || 'Open Challenge'}</span>
             </p>
           </div>
         </div>
