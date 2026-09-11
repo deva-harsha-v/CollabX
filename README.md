@@ -1,16 +1,72 @@
-# React + Vite
+# CollabX Platform — Full-Stack Monorepo
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Welcome to the **CollabX Platform** repository. The codebase is organized into dedicated **frontend** and **backend** packages.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🏛️ Monorepo Directory Architecture
 
-## React Compiler
+```
+CollabX/
+├── frontend/                     # Client Web Application
+│   ├── public/                   # Static assets & icons
+│   ├── src/                      # React 19 application
+│   │   ├── assets/               # Bundled assets
+│   │   ├── components/           # UI components (Navbar, Autocomplete, PostCard, Modals)
+│   │   ├── context/              # AppContext & Realtime subscription listeners
+│   │   ├── data/                 # 130+ Curated Roles & Skills dataset
+│   │   ├── lib/                  # Storage layer, Supabase client & fallback shims
+│   │   └── pages/                # Views (FeedPage, MessagesPage, AdminPortalPage, AuthPage)
+│   ├── index.html                # Vite HTML shell
+│   ├── package.json              # Frontend dependencies & scripts
+│   ├── vite.config.js            # Vite configuration
+│   └── tailwind.config.js        # Tailwind CSS styling
+│
+├── backend/                      # Server & Database Service
+│   ├── database/                 # SQL Schemas, RLS Policies & Triggers
+│   │   └── supabase_schema.sql
+│   ├── scripts/                  # DB Verification & Diagnostic scripts
+│   │   └── verify_supabase.js
+│   ├── src/                      # Express REST API Server
+│   │   ├── config/               # Supabase service configuration
+│   │   ├── controllers/          # Business logic & Gating authorization
+│   │   ├── routes/               # API endpoint routers (/api/posts, /api/admin)
+│   │   └── server.js             # API entrypoint
+│   └── package.json              # Backend dependencies & scripts
+│
+├── package.json                  # Root Monorepo workspace orchestrator
+├── vercel.json                   # Deployment rewrite configuration
+└── README.md                     # This documentation file
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🚀 Quickstart Commands
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### Running from Root
+
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Starts the **Frontend** Vite development server |
+| `npm run build` | Builds the **Frontend** for production |
+| `npm run backend:dev` | Starts the **Backend** Express server with file watching |
+| `npm run backend` | Runs the **Backend** server in production mode |
+| `npm run backend:verify`| Runs database connectivity and schema verification |
+| `npm run lint` | Runs the codebase linter |
+
+### Running from Subdirectories
+
+- **Frontend**:
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+
+- **Backend**:
+  ```bash
+  cd backend
+  npm install
+  npm run dev
+  ```
+
