@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, ChevronRight, Send, Paperclip, FileText, X, ArrowLeft } from 'lucide-react';
+import { MessageSquare, ChevronRight, Send, Paperclip, FileText, X, ArrowLeft, Trash2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { getAccessibleChatRooms, getChatMessages, sendChatMessage } from '../lib/storage';
+import { getAccessibleChatRooms, getChatMessages, sendChatMessage, hideChatRoomForUser } from '../lib/storage';
 
-const ChatPanel = ({ room, currentUser, onBack }) => {
+const ChatPanel = ({ room, currentUser, onBack, onDeleteChat }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [attachment, setAttachment] = useState(null);
@@ -35,7 +35,27 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 
   useEffect(() => {
     if (!room || !isSupabaseConfigured) return;
-    const channel = supabase
+    const cleanId = room.room_id ? room.room_id.replace('room_', '') : '';
+
+    // 1. Listen for Supabase Realtime WebSocket broadcasts (instant peer-to-peer relay)
+    const broadcastChannel = supabase
+      .channel(`room_broadcast_${room.room_id}`, {
+        config: { broadcast: { self: true } }
+      })
+      .on('broadcast', { event: 'chat_message' }, (payload) => {
+        const newMsg = payload.payload;
+        if (newMsg) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          setTimeout(scrollToBottom, 100);
+        }
+      })
+      .subscribe();
+
+    // 2. Also listen for Postgres changes
+    const dbChannel = supabase
       .channel('messages_page_' + room.room_id)
       .on(
         'postgres_changes',
@@ -68,7 +88,8 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(broadcastChannel);
+      supabase.removeChannel(dbChannel);
     };
   }, [room]);
 
@@ -116,20 +137,35 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="px-5 py-4 border-b border-[#0ea5e9]/30 bg-[#06142e]/80 flex items-center gap-3 shrink-0">
-        <button
-          onClick={onBack}
-          className="md:hidden p-1.5 rounded-lg bg-[#0b2240] border border-[#0ea5e9]/40 text-[#38bdf8] hover:text-[#f0f9ff] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div className="w-8 h-8 rounded-xl bg-[#0ea5e9]/20 border border-[#0ea5e9]/40 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+      <div className="px-5 py-3.5 border-b border-[#0ea5e9]/30 bg-[#06142e]/80 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onBack}
+            className="md:hidden p-1.5 rounded-lg bg-[#0b2240] border border-[#0ea5e9]/40 text-[#38bdf8] hover:text-[#f0f9ff] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-8 h-8 rounded-xl bg-[#0ea5e9]/20 border border-[#0ea5e9]/40 flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-bold text-[#f0f9ff] font-['Outfit'] text-base truncate">{room.post_title}</h3>
+            <span className="text-[10px] font-mono text-[#38bdf8]/70">Collaboration Room · REALTIME</span>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h3 className="font-bold text-[#f0f9ff] font-['Outfit'] text-base truncate">{room.post_title}</h3>
-          <span className="text-[10px] font-mono text-[#38bdf8]/70">Collaboration Room · REALTIME</span>
-        </div>
+
+        {/* Delete / Hide Chat Button */}
+        {onDeleteChat && (
+          <button
+            type="button"
+            onClick={() => onDeleteChat(room.room_id)}
+            className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-400 hover:text-red-200 text-xs font-mono font-medium flex items-center gap-1.5 transition-all shadow-sm shrink-0"
+            title="Delete this chatroom from your account"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Delete Chat</span>
+          </button>
+        )}
       </div>
 
       {chatError && (
@@ -258,6 +294,7 @@ const MessagesPage = () => {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showChat, setShowChat] = useState(false);
+  const [deleteToast, setDeleteToast] = useState('');
 
   const loadRooms = useCallback(async () => {
     setLoadingRooms(true);
@@ -268,11 +305,25 @@ const MessagesPage = () => {
     if (loaded.length > 0 && !selectedRoom) {
       setSelectedRoom(loaded[0]);
       markChatRoomRead(loaded[0].room_id);
+    } else if (loaded.length === 0) {
+      setSelectedRoom(null);
     }
   }, [selectedRoom, markChatRoomRead]);
 
   useEffect(() => {
     loadRooms();
+  }, [loadRooms]);
+
+  useEffect(() => {
+    const handleRoomsUpdate = () => {
+      loadRooms();
+    };
+    window.addEventListener('collabx_rooms_update', handleRoomsUpdate);
+    window.addEventListener('storage', handleRoomsUpdate);
+    return () => {
+      window.removeEventListener('collabx_rooms_update', handleRoomsUpdate);
+      window.removeEventListener('storage', handleRoomsUpdate);
+    };
   }, [loadRooms]);
 
   useEffect(() => {
@@ -287,23 +338,56 @@ const MessagesPage = () => {
     markChatRoomRead(room.room_id);
   };
 
+  const handleDeleteRoom = (e, roomId) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!currentUser?.id || !roomId) return;
+
+    hideChatRoomForUser(roomId, currentUser.id);
+
+    setDeleteToast('Chatroom deleted from your account. It will reappear if someone sends a new message.');
+    setTimeout(() => setDeleteToast(''), 5000);
+
+    if (selectedRoom?.room_id === roomId || selectedRoom?.post_id === roomId) {
+      const remaining = rooms.filter(r => r.room_id !== roomId && r.post_id !== roomId);
+      if (remaining.length > 0) {
+        setSelectedRoom(remaining[0]);
+      } else {
+        setSelectedRoom(null);
+        setShowChat(false);
+      }
+    }
+    loadRooms();
+  };
+
   return (
     <div className="min-h-screen bg-[#06142e] text-[#f0f9ff] cyber-grid relative">
       <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-[#0ea5e9]/10 rounded-full blur-[160px] pointer-events-none" />
       <Navbar />
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-8" style={{ height: 'calc(100vh - 0px)' }}>
         <div className="h-full flex flex-col">
-          <div className="mb-4 shrink-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0b2240]/80 border border-[#0ea5e9]/40 text-[#38bdf8] text-xs font-mono uppercase tracking-wider mb-2">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Messages</span>
+          <div className="mb-4 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0b2240]/80 border border-[#0ea5e9]/40 text-[#38bdf8] text-xs font-mono uppercase tracking-wider mb-2">
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Messages</span>
+              </div>
+              <h1 className="font-['Outfit'] font-extrabold text-2xl sm:text-3xl text-[#f0f9ff] tracking-tight">
+                Your Collaboration Rooms
+              </h1>
+              <p className="text-sm text-[#38bdf8] mt-1">
+                All challenge chat rooms you have access to as a poster or accepted solver.
+              </p>
             </div>
-            <h1 className="font-['Outfit'] font-extrabold text-2xl sm:text-3xl text-[#f0f9ff] tracking-tight">
-              Your Collaboration Rooms
-            </h1>
-            <p className="text-sm text-[#38bdf8] mt-1">
-              All challenge chat rooms you have access to as a poster or accepted solver.
-            </p>
+
+            {deleteToast && (
+              <div className="px-4 py-2 bg-[#0ea5e9]/20 border border-[#0ea5e9]/50 rounded-xl text-xs font-mono text-[#f0f9ff] flex items-center justify-between gap-2 shadow-lg animate-fade-in">
+                <span>🗑️ {deleteToast}</span>
+                <button onClick={() => setDeleteToast('')} className="text-[#38bdf8] hover:text-white font-bold">✕</button>
+              </div>
+            )}
           </div>
 
           <div
@@ -336,9 +420,9 @@ const MessagesPage = () => {
                 ) : rooms.length === 0 ? (
                   <div className="py-12 px-4 text-center text-[#38bdf8]/70 font-mono text-xs">
                     <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[#0ea5e9]/50" />
-                    <p className="font-semibold text-[#38bdf8] mb-1">No rooms yet</p>
+                    <p className="font-semibold text-[#38bdf8] mb-1">No rooms</p>
                     <p className="text-[#38bdf8]/60 leading-relaxed text-[11px]">
-                      Rooms appear here once a poster accepts your contact request, or when you accept a solver's request.
+                      Rooms appear here when you collaborate on challenges. Deleted rooms will reappear if a new message is sent.
                     </p>
                   </div>
                 ) : (
@@ -359,50 +443,66 @@ const MessagesPage = () => {
                     ).length;
 
                     return (
-                      <button
+                      <div
                         key={room.room_id}
-                        type="button"
-                        onClick={() => handleSelectRoom(room)}
                         className={
-                          'w-full text-left px-4 py-3.5 flex items-center gap-3 transition-all border-b border-[#0ea5e9]/20 last:border-0 ' +
+                          'w-full text-left px-4 py-3.5 flex items-center gap-2.5 transition-all border-b border-[#0ea5e9]/20 last:border-0 group ' +
                           (isActive
                             ? 'bg-[#0ea5e9]/25 border-l-2 border-l-[#38bdf8]'
                             : 'hover:bg-[#0b2240]/60 border-l-2 border-l-transparent')
                         }
                       >
-                        <div className="relative w-9 h-9 rounded-xl bg-[#0ea5e9]/20 border border-[#0ea5e9]/40 flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
-                          {unreadRoomCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-90" />
-                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 shadow-[0_0_10px_#ef4444] border border-white/60" />
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <p className="text-sm font-semibold text-[#f0f9ff] truncate">{room.post_title}</p>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectRoom(room)}
+                          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                        >
+                          <div className="relative w-9 h-9 rounded-xl bg-[#0ea5e9]/20 border border-[#0ea5e9]/40 flex items-center justify-center shrink-0">
+                            <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
                             {unreadRoomCount > 0 && (
-                              <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-red-600 text-white border border-red-400/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] shrink-0 animate-pulse">
-                                {unreadRoomCount} NEW
+                              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-90" />
+                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 shadow-[0_0_10px_#ef4444] border border-white/60" />
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] font-mono text-[#38bdf8]/60 mt-0.5">
-                            {new Date(room.created_at).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-sm font-semibold text-[#f0f9ff] truncate">{room.post_title}</p>
+                              {unreadRoomCount > 0 && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-red-600 text-white border border-red-400/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] shrink-0 animate-pulse">
+                                  {unreadRoomCount} NEW
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] font-mono text-[#38bdf8]/60 mt-0.5">
+                              {new Date(room.created_at).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </button>
+
+                        {/* Individual Delete Chatroom Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteRoom(e, room.room_id)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-[#38bdf8]/50 hover:text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+                          title="Delete chat from your account (reappears on new message)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
                         <ChevronRight
+                          onClick={() => handleSelectRoom(room)}
                           className={
-                            'w-4 h-4 shrink-0 transition-colors ' +
+                            'w-4 h-4 shrink-0 cursor-pointer transition-colors ' +
                             (isActive ? 'text-[#38bdf8]' : 'text-[#0ea5e9]/50')
                           }
                         />
-                      </button>
+                      </div>
                     );
                   })
                 )}
@@ -410,7 +510,12 @@ const MessagesPage = () => {
             </div>
 
             <div className={'flex-1 flex flex-col min-h-0 min-w-0 ' + (showChat ? 'flex' : 'hidden md:flex')}>
-              <ChatPanel room={selectedRoom} currentUser={currentUser} onBack={() => setShowChat(false)} />
+              <ChatPanel
+                room={selectedRoom}
+                currentUser={currentUser}
+                onBack={() => setShowChat(false)}
+                onDeleteChat={(rId) => handleDeleteRoom(null, rId)}
+              />
             </div>
           </div>
         </div>

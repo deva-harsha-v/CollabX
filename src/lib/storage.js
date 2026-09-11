@@ -160,6 +160,7 @@ export async function signUp(userData) {
         verification_uploaded: false,
       };
 
+      setLocal(LOCAL_SESSION, newUser);
       return { data: newUser, error: null };
     } catch (err) {
       return { data: null, error: { message: err.message } };
@@ -229,6 +230,7 @@ export async function signIn(email, password) {
         verification_uploaded: profile.verification_uploaded,
       };
 
+      setLocal(LOCAL_SESSION, user);
       return { data: user, error: null };
     } catch (err) {
       return { data: null, error: { message: err.message } };
@@ -1420,6 +1422,56 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
     console.warn('[storage] local notif dispatch error:', e);
   }
 
+  // Supabase Realtime WebSocket broadcast for instant cross-account delivery
+  if (isSupabaseConfigured) {
+    try {
+      const roomChannel = supabase.channel(`room_${targetRoomId}`);
+      roomChannel.send({
+        type: 'broadcast',
+        event: 'chat_message',
+        payload: newMsg
+      });
+
+      if (cleanId !== targetRoomId) {
+        const postChannel = supabase.channel(`room_${cleanId}`);
+        postChannel.send({
+          type: 'broadcast',
+          event: 'chat_message',
+          payload: newMsg
+        });
+      }
+
+      const notifGlobalChannel = supabase.channel('collabx_global_notifications');
+      notifGlobalChannel.send({
+        type: 'broadcast',
+        event: 'new_notification',
+        payload: {
+          recipientIds: Array.from(recipientUserIds),
+          notification: {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+            user_id: Array.from(recipientUserIds)[0] || '',
+            type: 'chat_message',
+            message: `New message from ${senderName} in "${postTitle}"`,
+            payload: {
+              room_id: targetRoomId,
+              roomId: targetRoomId,
+              post_id: activePostId,
+              post_title: postTitle,
+              sender_id: senderUserId,
+              sender_name: senderName,
+              message: `New message from ${senderName} in "${postTitle}"`,
+              preview: content ? (content.length > 50 ? content.substring(0, 47) + '...' : content) : 'Sent an attachment'
+            },
+            read: false,
+            created_at: timestamp
+          }
+        }
+      });
+    } catch (bcErr) {
+      console.warn('[storage] broadcast dispatch error:', bcErr);
+    }
+  }
+
   return { data: newMsg, error: null };
 }
 
@@ -1474,7 +1526,46 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
 }
 
 /**
+ * Per-User Chatroom Deletion Lifecycle Management
+ * When deleted, the room disappears ONLY for that user account.
+ * If any participant sends a new message later, the room automatically resurfaces!
+ */
+export function getDeletedChatRooms(userId) {
+  if (!userId) return {};
+  return getLocal(`collabx_deleted_rooms_${userId}`, {});
+}
+
+export function hideChatRoomForUser(roomId, userId) {
+  if (!userId || !roomId) return;
+  const deletedMap = getLocal(`collabx_deleted_rooms_${userId}`, {});
+  const now = Date.now();
+  deletedMap[roomId] = now;
+  const cleanId = roomId.replace('room_', '');
+  deletedMap[cleanId] = now;
+  setLocal(`collabx_deleted_rooms_${userId}`, deletedMap);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('collabx_rooms_update'));
+    window.dispatchEvent(new Event('storage'));
+  }
+}
+
+export function unhideChatRoomForUser(roomId, userId) {
+  if (!userId || !roomId) return;
+  const deletedMap = getLocal(`collabx_deleted_rooms_${userId}`, {});
+  delete deletedMap[roomId];
+  delete deletedMap[roomId.replace('room_', '')];
+  setLocal(`collabx_deleted_rooms_${userId}`, deletedMap);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('collabx_rooms_update'));
+    window.dispatchEvent(new Event('storage'));
+  }
+}
+
+/**
  * Get all chat rooms the current user is a participant in
+ * Filters out rooms deleted by the user unless a newer message arrived
  * Returns [{ room_id, post_id, post_title, created_at }]
  */
 export async function getAccessibleChatRooms() {
@@ -1600,7 +1691,30 @@ export async function getAccessibleChatRooms() {
     }
   });
 
-  return { data: Array.from(accessibleRoomsMap.values()), error: null };
+  // Apply per-user deletion filtering
+  const deletedMap = currentUserId ? getLocal(`collabx_deleted_rooms_${currentUserId}`, {}) : {};
+  const allLocalMsgs = getLocal(LOCAL_CHAT_MSGS, []);
+
+  const visibleRooms = Array.from(accessibleRoomsMap.values()).filter(r => {
+    const cleanId = r.room_id ? r.room_id.replace('room_', '') : '';
+    const cleanPostId = r.post_id ? r.post_id.replace('room_', '') : '';
+    const deletedTimestamp = deletedMap[r.room_id] || deletedMap[cleanId] || deletedMap[r.post_id] || deletedMap[cleanPostId];
+
+    if (!deletedTimestamp) return true;
+
+    // Check if there are any messages sent in this room AFTER deletedTimestamp
+    const roomMsgs = allLocalMsgs.filter(m =>
+      m.chat_room_id === r.room_id ||
+      m.chat_room_id === cleanId ||
+      m.chat_room_id === r.post_id ||
+      m.chat_room_id === cleanPostId
+    );
+
+    const hasNewerMessage = roomMsgs.some(m => new Date(m.created_at || m.createdAt).getTime() > deletedTimestamp);
+    return hasNewerMessage;
+  });
+
+  return { data: visibleRooms, error: null };
 }
 
 /**

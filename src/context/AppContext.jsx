@@ -76,10 +76,30 @@ export const AppProvider = ({ children }) => {
       window.addEventListener('storage', handleStorageUpdate);
       window.addEventListener('collabx_notif_update', handleStorageUpdate);
 
-      // Supabase Realtime subscriptions on notifications & chat_messages tables
+      // Supabase Realtime WebSocket Broadcast subscription for instant cross-browser / cross-account notifications
+      let broadcastChannel;
       let notifChannel;
       let msgChannel;
+
       if (isSupabaseConfigured) {
+        broadcastChannel = supabase
+          .channel('collabx_global_notifications', {
+            config: { broadcast: { self: true } }
+          })
+          .on('broadcast', { event: 'new_notification' }, (event) => {
+            const data = event.payload;
+            if (data && (!data.recipientIds || data.recipientIds.includes(currentUser.id) || data.recipient_id === currentUser.id)) {
+              if (data.notification) {
+                setNotifications((prev) => [data.notification, ...prev.filter((n) => n.id !== data.notification.id)]);
+              }
+              refreshNotifications(currentUser.id);
+            }
+          })
+          .on('broadcast', { event: 'chat_activity' }, () => {
+            refreshNotifications(currentUser.id);
+          })
+          .subscribe();
+
         notifChannel = supabase
           .channel(`user_notifs_${currentUser.id}`)
           .on(
@@ -122,7 +142,6 @@ export const AppProvider = ({ children }) => {
               table: 'chat_messages',
             },
             () => {
-              // Immediately refresh notifications on any incoming chat message
               refreshNotifications(currentUser.id);
             }
           )
@@ -133,6 +152,7 @@ export const AppProvider = ({ children }) => {
         clearInterval(interval);
         window.removeEventListener('storage', handleStorageUpdate);
         window.removeEventListener('collabx_notif_update', handleStorageUpdate);
+        if (broadcastChannel) supabase.removeChannel(broadcastChannel);
         if (notifChannel) supabase.removeChannel(notifChannel);
         if (msgChannel) supabase.removeChannel(msgChannel);
       };
