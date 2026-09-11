@@ -258,7 +258,8 @@ export async function getCurrentUser() {
         skills: userSkills,
         account_type: getUserAccountType(profile || localSession),
         is_emergency: Boolean(localSession?.is_emergency || sessionUser.user_metadata?.is_emergency),
-        emergency_first_post_pending: localSession?.emergency_first_post_pending,
+        emergency_first_post_pending: Boolean(localSession?.emergency_first_post_pending),
+        has_made_emergency_post: Boolean(localSession?.has_made_emergency_post || sessionUser.user_metadata?.has_made_emergency_post),
         has_password: localSession?.has_password ?? Boolean(sessionUser.user_metadata?.has_password),
         verification_uploaded: profile?.verification_uploaded ?? localSession?.verification_uploaded,
         verification_document_url: profile?.verification_document_url ?? localSession?.verification_document_url,
@@ -536,6 +537,7 @@ export async function signUpEmergency(userData) {
     is_emergency: true,
     has_password: false,
     emergency_first_post_pending: true,
+    has_made_emergency_post: false,
     verification_uploaded: true,
     verification_document_url: docUrl || userData.verificationDocument?.base64 || null,
     createdAt: new Date().toISOString(),
@@ -711,11 +713,11 @@ export async function signOut() {
  */
 export async function createPost(postData) {
   const session = getLocal(LOCAL_SESSION, {});
-  const isEmergency = Boolean(
-    postData.is_emergency ||
-    postData.isEmergency ||
+  // An emergency user is limited to strictly 1 emergency crisis challenge.
+  const alreadyMadeEmergencyPost = Boolean(session.has_made_emergency_post);
+  const isEmergency = !alreadyMadeEmergencyPost && Boolean(
     session.emergency_first_post_pending ||
-    (session.is_emergency && session.emergency_first_post_pending !== false)
+    (postData.is_emergency && !alreadyMadeEmergencyPost)
   );
 
   const solverReq = postData.solver_requirement || postData.solverRequirement || 'organisation_only';
@@ -866,10 +868,19 @@ export async function createPost(postData) {
     setLocal('collabx_emergency_posts_map', emergMap);
   }
 
-  // 5. If emergency user had emergency_first_post_pending, clear it
-  if (session && session.emergency_first_post_pending) {
+  // 5. If this was an emergency post or first emergency post, mark it permanently used
+  if (session && (isEmergency || session.emergency_first_post_pending)) {
     session.emergency_first_post_pending = false;
+    session.has_made_emergency_post = true;
     setLocal(LOCAL_SESSION, session);
+
+    const users = getLocal(LOCAL_USERS, []);
+    const updatedUsers = users.map(u => u.id === session.id ? { 
+      ...u, 
+      emergency_first_post_pending: false, 
+      has_made_emergency_post: true 
+    } : u);
+    setLocal(LOCAL_USERS, updatedUsers);
   }
 
   // 6. Cross-device broadcast and sync

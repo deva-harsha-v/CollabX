@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
-import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone, UserCheck, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RoleAutocompleteInput from './RoleAutocompleteInput';
 
 const CreatePostModal = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const { addNewPost, currentUser } = useApp();
-  const isEmergencyUser = Boolean(currentUser?.is_emergency || currentUser?.emergency_first_post_pending);
+
+  // Emergency Mode is STRICTLY limited to the 1st post right after emergency signup
+  const isEmergencyFirstPost = Boolean(
+    currentUser?.is_emergency && 
+    currentUser?.emergency_first_post_pending && 
+    !currentUser?.has_made_emergency_post
+  );
+
+  // If the user has already posted their 1 emergency post, but hasn't established their password
+  const isEmergencyNeedsSetup = Boolean(
+    currentUser?.is_emergency && 
+    currentUser?.has_made_emergency_post && 
+    !currentUser?.has_password
+  );
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -108,6 +123,11 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setErrorMsg('');
 
+    if (isEmergencyNeedsSetup) {
+      setErrorMsg('Please set your account password and complete profile details in Account Settings before posting regular challenges.');
+      return;
+    }
+
     if (!title.trim()) {
       setErrorMsg('Please enter a title for the challenge.');
       return;
@@ -117,7 +137,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       return;
     }
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (!isEmergencyUser && (!cleanPhone || cleanPhone.length !== 10)) {
+    if (!isEmergencyFirstPost && (!cleanPhone || cleanPhone.length !== 10)) {
       setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
       return;
     }
@@ -134,7 +154,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       address: address || null,
       coordinates: coordinates || null, // Full unrounded float numbers
       media: mediaPreview || null,
-      is_emergency: isEmergencyUser,
+      is_emergency: isEmergencyFirstPost,
     });
 
     setIsSubmitting(false);
@@ -171,22 +191,45 @@ const CreatePostModal = ({ isOpen, onClose }) => {
           </div>
           <div>
             <h3 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
-              {isEmergencyUser ? '🚨 Post Emergency Challenge' : 'Post a Challenge'}
+              {isEmergencyFirstPost ? '🚨 Post Emergency Challenge' : 'Post a Challenge'}
             </h3>
             <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">
-              {isEmergencyUser ? 'Priority Live Feed Placement' : 'Publish to Verified Solvers'}
+              {isEmergencyFirstPost ? 'Priority Live Feed Placement • 1 Allowed Emergency Post' : 'Publish to Verified Solvers'}
             </p>
           </div>
         </div>
 
-        {/* Emergency Alert Banner */}
-        {isEmergencyUser && (
+        {/* Setup Required Notice (If emergency post is already exhausted and password not set) */}
+        {isEmergencyNeedsSetup && (
+          <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs shadow-[0_0_25px_rgba(245,158,11,0.2)] flex items-start gap-3">
+            <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <h4 className="font-bold text-sm text-amber-100 font-['Outfit']">🔒 Account Details & Password Setup Required</h4>
+              <p className="leading-relaxed text-amber-200/90">
+                You have already posted your 1 allowed emergency crisis challenge. To post regular challenges on CollabX, please complete your profile details and set up your account password.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  handleReset();
+                  navigate('/account');
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs tracking-wide shadow-md transition-colors mt-1"
+              >
+                <span>Go to Account Settings</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Emergency Alert Banner (Only on 1st emergency post) */}
+        {isEmergencyFirstPost && (
           <div className="mb-4 p-4 rounded-2xl bg-red-950/80 border border-red-500/80 text-red-200 text-xs font-mono shadow-[0_0_25px_rgba(239,68,68,0.4)] flex items-start gap-3 animate-pulse">
             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-sm text-red-100 font-['Outfit']">🚨 EMERGENCY / CRISIS CHALLENGE POST</h4>
+              <h4 className="font-bold text-sm text-red-100 font-['Outfit']">🚨 EMERGENCY / CRISIS CHALLENGE POST (1 ALLOWED)</h4>
               <p className="mt-1 text-red-200/90 leading-relaxed">
-                This challenge will be tagged as an Emergency and pinned to the very top of the live feed across all users and devices.
+                This challenge will be tagged as an Emergency and pinned to the very top of the live feed across all users and devices. Subsequent challenges will be normal posts.
               </p>
             </div>
           </div>
@@ -419,15 +462,29 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Submit CTA (Red Pill Button - THE ONLY RED ELEMENT UNTOUCHED) */}
+          {/* Submit CTA */}
           <div className="pt-3">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full red-pill-button py-3 text-base font-bold shadow-lg disabled:opacity-50"
-            >
-              <span>{isSubmitting ? 'Posting Challenge...' : (isEmergencyUser ? '🚨 Publish Priority Emergency Challenge' : 'Post Challenge')}</span>
-            </button>
+            {isEmergencyNeedsSetup ? (
+              <button
+                type="button"
+                onClick={() => {
+                  handleReset();
+                  navigate('/account');
+                }}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Set Password in Settings to Post Challenges</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full red-pill-button py-3 text-base font-bold shadow-lg disabled:opacity-50"
+              >
+                <span>{isSubmitting ? 'Posting Challenge...' : (isEmergencyFirstPost ? '🚨 Publish Priority Emergency Challenge' : 'Post Challenge')}</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

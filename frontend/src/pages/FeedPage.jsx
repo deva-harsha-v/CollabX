@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, ArrowLeft, Layers, Lightbulb, MessageSquare, Filter, Search, X, Tag, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Plus, Sparkles, ArrowLeft, Layers, Lightbulb, MessageSquare, Filter, Search, X, Tag, SlidersHorizontal, RotateCcw, AlertCircle, Lock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import CreatePostModal from '../components/CreatePostModal';
@@ -81,17 +81,37 @@ const FeedPage = () => {
     };
   }, [loadFeedData]);
 
+  const hasAutoOpenedRef = useRef(false);
+  const [showSetupRequiredModal, setShowSetupRequiredModal] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('action') === 'emergency_post' || currentUser?.emergency_first_post_pending) {
-      setIsCreateOpen(true);
-    }
-  }, [location.search, currentUser]);
+    const isEmergencyAction = params.get('action') === 'emergency_post';
+    const isPendingFirstPost = Boolean(
+      currentUser?.is_emergency && 
+      currentUser?.emergency_first_post_pending && 
+      !currentUser?.has_made_emergency_post
+    );
 
-  const handleOpenCreate = () => setIsCreateOpen(true);
+    if ((isEmergencyAction || isPendingFirstPost) && !hasAutoOpenedRef.current) {
+      hasAutoOpenedRef.current = true;
+      setIsCreateOpen(true);
+      if (isEmergencyAction) {
+        navigate(location.pathname, { replace: true });
+      }
+    }
+  }, [location.search, location.pathname, currentUser, navigate]);
+
+  const handleOpenCreate = () => {
+    if (currentUser?.is_emergency && currentUser?.has_made_emergency_post && !currentUser?.has_password) {
+      setShowSetupRequiredModal(true);
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
   const handleCloseCreate = () => {
     setIsCreateOpen(false);
-    // Clear the action query param if present without reload
     if (location.search.includes('action=emergency_post')) {
       navigate(location.pathname, { replace: true });
     }
@@ -484,6 +504,43 @@ const FeedPage = () => {
 
       {/* Create Post Modal */}
       <CreatePostModal isOpen={isCreateOpen} onClose={handleCloseCreate} />
+
+      {/* Account Setup Required Modal (If emergency post already exhausted and password not set) */}
+      {showSetupRequiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md p-6 sm:p-8 bg-[#0b2240]/95 border border-amber-500/40 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.25)] text-[#f0f9ff] backdrop-blur-2xl text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">
+              Account Details & Password Required
+            </h3>
+            <p className="text-xs text-[#38bdf8] leading-relaxed">
+              You have already posted your 1 allowed emergency crisis challenge.
+              To post regular challenges, please complete your profile details and set up your account password in Account Settings.
+            </p>
+            <div className="pt-2 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSetupRequiredModal(false);
+                  navigate('/account');
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg transition-all"
+              >
+                Go to Account Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSetupRequiredModal(false)}
+                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#f0f9ff]/70 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Realtime Chat Room Modal */}
       <ChatRoomModal
