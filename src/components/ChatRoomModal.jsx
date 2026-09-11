@@ -129,8 +129,8 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl h-[80vh] flex flex-col bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] text-slate-100 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-[95vw] sm:w-full max-w-2xl h-[90vh] sm:h-[80vh] flex flex-col bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] text-slate-100 overflow-hidden">
         
         {/* Glow ambient */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />

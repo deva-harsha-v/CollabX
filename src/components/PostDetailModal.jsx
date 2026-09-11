@@ -93,11 +93,11 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="relative w-full max-w-3xl max-h-[90vh] p-6 sm:p-8 bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] text-slate-100 overflow-y-auto"
+          className="relative w-[95vw] sm:w-full max-w-3xl max-h-[90vh] p-5 sm:p-8 bg-[#0c1322] border border-cyan-500/30 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] text-slate-100 overflow-y-auto"
         >
           
           {/* Ambient Glow */}

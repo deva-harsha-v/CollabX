@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Bell, LogOut, FileText, ChevronDown, Sparkles, Lightbulb } from 'lucide-react';
+import { ArrowRight, Bell, LogOut, FileText, ChevronDown, Sparkles, Lightbulb, Menu, X as CloseIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ContactRequestReviewModal from './ContactRequestReviewModal';
 import PostDetailModal from './PostDetailModal';
@@ -21,6 +21,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   // Notification Modals
   const [selectedNotif, setSelectedNotif] = useState(null);
@@ -289,10 +290,9 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-
             </div>
           ) : (
-            /* Logged Out CTA Button - Navigates to /auth */
+            /* Logged Out CTA Button */
             <button
               onClick={() => navigate('/auth')}
               className="red-pill-button px-4 sm:px-6 py-2 text-xs sm:text-sm shadow-md"
@@ -301,7 +301,53 @@ const Navbar = () => {
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 hidden sm:inline" />
             </button>
           )}
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowMobileNav(!showMobileNav)}
+            className="md:hidden p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white transition-colors"
+            aria-label="Toggle mobile menu"
+          >
+            {showMobileNav ? <CloseIcon className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5 text-slate-300" />}
+          </button>
         </div>
+
+        {/* Mobile Navigation Drawer */}
+        {showMobileNav && (
+          <div className="md:hidden mx-4 mt-2 p-4 bg-[#0c1322]/95 border border-cyan-500/30 rounded-2xl backdrop-blur-2xl shadow-2xl flex flex-col gap-3 text-sm text-slate-200 animate-fade-in">
+            <Link 
+              to="/" 
+              onClick={() => setShowMobileNav(false)}
+              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+            >
+              The Mission
+            </Link>
+            <a 
+              href="#how-it-works" 
+              onClick={() => setShowMobileNav(false)}
+              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+            >
+              How It Works
+            </a>
+            <a 
+              href="#security" 
+              onClick={() => setShowMobileNav(false)}
+              className="py-2 px-3 rounded-lg hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+            >
+              Security & Trust
+            </a>
+            {currentUser && (
+              <Link
+                to="/feed"
+                onClick={() => { setFeedFilter('all'); setShowMobileNav(false); }}
+                className="py-2 px-3 rounded-lg text-cyan-300 font-semibold bg-cyan-950/60 border border-cyan-500/30 flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Live Feed
+              </Link>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Poster Contact Request Review Modal */}
