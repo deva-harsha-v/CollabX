@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import ChatRoomModal from '../components/ChatRoomModal';
-import { softDeletePost, completePost } from '../lib/storage';
+import { softDeletePost, completePost, updatePostProgress } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 
 const FeedPage = () => {
@@ -25,18 +25,23 @@ const FeedPage = () => {
     refreshPosts();
   };
 
+  const handleProgressUpdate = async (postId, percentage) => {
+    await updatePostProgress(postId, percentage);
+    // No full refresh needed — PostCard manages local state optimistically
+  };
+
   const isFiltered = feedFilter === 'my_posts' || feedFilter === 'my_ideas';
 
   const getHeaderTitle = () => {
     if (feedFilter === 'my_posts') return 'Your Posted Challenges';
     if (feedFilter === 'my_ideas') return 'Your Accepted Ideas & Collaborations';
-    return 'Live Civic Challenges';
+    return 'Live Open Challenges';
   };
 
   const getHeaderSubtext = () => {
-    if (feedFilter === 'my_posts') return 'Manage your dispatched challenges, mark completions, or launch project chat rooms.';
-    if (feedFilter === 'my_ideas') return 'Problem briefs where your contact request was accepted by the poster.';
-    return 'Real community emergencies meeting verified research solvers.';
+    if (feedFilter === 'my_posts') return 'Manage your posted challenges, mark completions, or launch project chat rooms.';
+    if (feedFilter === 'my_ideas') return 'Challenge briefs where your contact request was accepted by the poster.';
+    return 'Real community challenges meeting verified research solvers.';
   };
 
   return (
@@ -60,7 +65,7 @@ const FeedPage = () => {
               ) : (
                 <Sparkles className="w-3.5 h-3.5 text-[#B3CFE5]" />
               )}
-              <span>{feedFilter === 'my_ideas' ? 'Accepted Solutions' : 'Verified Civic Feed'}</span>
+              <span>{feedFilter === 'my_ideas' ? 'Accepted Solutions' : 'Verified Challenge Feed'}</span>
             </div>
 
             <h1 className="font-['Outfit'] font-extrabold text-3xl sm:text-4xl text-[#F6FAFD] tracking-tight flex items-center gap-3">
@@ -97,9 +102,10 @@ const FeedPage = () => {
                   isAuthorView={feedFilter === 'my_posts'}
                   onDelete={handleDeletePost}
                   onComplete={handleCompletePost}
+                  onProgressChange={feedFilter === 'my_posts' ? handleProgressUpdate : undefined}
                 />
 
-                {/* PHASE 8: Chat Room Launcher Button in My Posts / My Ideas */}
+                {/* Chat Room Launcher Button in My Posts / My Ideas */}
                 {isFiltered && (
                   <div className="mt-2 flex justify-end">
                     <button
@@ -127,7 +133,7 @@ const FeedPage = () => {
 
             <h3 className="font-['Outfit'] font-bold text-xl text-[#F6FAFD] mb-2">
               {feedFilter === 'my_posts'
-                ? 'You Haven\'t Posted Any Challenges Yet'
+                ? "You Haven't Posted Any Challenges Yet"
                 : feedFilter === 'my_ideas'
                 ? 'No Accepted Ideas Yet'
                 : 'No Posts Yet'}
@@ -135,10 +141,10 @@ const FeedPage = () => {
 
             <p className="text-sm text-[#B3CFE5] max-w-md mx-auto mb-6 leading-relaxed">
               {feedFilter === 'my_posts'
-                ? 'When you dispatch a civic challenge brief, it will appear here for management.'
+                ? 'When you post a challenge brief, it will appear here for management.'
                 : feedFilter === 'my_ideas'
                 ? 'When a poster accepts your contact request, the project will appear here with unlocked details and chat.'
-                : 'Be the first to post a civic challenge and connect with verified solvers.'}
+                : 'Be the first to post a challenge and connect with verified solvers.'}
             </p>
 
             {isFiltered ? (

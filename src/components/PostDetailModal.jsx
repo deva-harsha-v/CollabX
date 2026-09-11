@@ -131,41 +131,68 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                     Full Direct Communication & Geographic Coordinates
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="grid grid-cols-1 gap-3 text-xs font-mono">
                     {post.phone_number && (
-                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center gap-2.5">
-                        <Phone className="w-4 h-4 text-[#B3CFE5] shrink-0" />
-                        <div>
-                          <span className="text-[10px] text-[#B3CFE5]/70 block">Poster Direct Phone</span>
-                          <span className="text-sm font-bold text-[#F6FAFD]">{post.phone_number}</span>
+                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2.5">
+                          <Phone className="w-4 h-4 text-[#B3CFE5] shrink-0" />
+                          <div>
+                            <span className="text-[10px] text-[#B3CFE5]/70 block">Poster Direct Phone</span>
+                            <span className="text-sm font-bold text-[#F6FAFD]">{post.phone_number}</span>
+                          </div>
                         </div>
+                        <a
+                          href={`tel:${post.phone_number}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4A7FA7]/30 hover:bg-[#4A7FA7]/50 border border-[#4A7FA7]/60 text-[#F6FAFD] font-semibold text-xs transition-colors"
+                        >
+                          📞 Call Them
+                        </a>
                       </div>
                     )}
 
                     {post.author_email && (
-                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center gap-2.5">
-                        <Mail className="w-4 h-4 text-[#B3CFE5] shrink-0" />
-                        <div>
-                          <span className="text-[10px] text-[#B3CFE5]/70 block">Poster Verified Email</span>
-                          <span className="text-sm font-bold text-[#F6FAFD]">{post.author_email}</span>
+                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2.5">
+                          <Mail className="w-4 h-4 text-[#B3CFE5] shrink-0" />
+                          <div>
+                            <span className="text-[10px] text-[#B3CFE5]/70 block">Poster Verified Email</span>
+                            <span className="text-sm font-bold text-[#F6FAFD]">{post.author_email}</span>
+                          </div>
                         </div>
+                        <a
+                          href={`mailto:${post.author_email}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4A7FA7]/30 hover:bg-[#4A7FA7]/50 border border-[#4A7FA7]/60 text-[#F6FAFD] font-semibold text-xs transition-colors"
+                        >
+                          ✉️ Mail Them
+                        </a>
                       </div>
                     )}
 
                     {(post.latitude !== null && post.longitude !== null) && (
-                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center gap-2.5 sm:col-span-2">
-                        <Navigation className="w-4 h-4 text-[#B3CFE5] shrink-0" />
-                        <div>
-                          <span className="text-[10px] text-[#B3CFE5]/70 block">Exact Float GPS Coordinates (Unrounded)</span>
-                          <span className="text-sm font-bold text-[#F6FAFD]">
-                            Lat: {post.latitude} &nbsp;•&nbsp; Lng: {post.longitude}
-                          </span>
+                      <div className="p-3 rounded-xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2.5">
+                          <Navigation className="w-4 h-4 text-[#B3CFE5] shrink-0" />
+                          <div>
+                            <span className="text-[10px] text-[#B3CFE5]/70 block">Exact GPS Coordinates (Unrounded)</span>
+                            <span className="text-sm font-bold text-[#F6FAFD]">
+                              Lat: {post.latitude} &nbsp;•&nbsp; Lng: {post.longitude}
+                            </span>
+                          </div>
                         </div>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${post.latitude},${post.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4A7FA7]/30 hover:bg-[#4A7FA7]/50 border border-[#4A7FA7]/60 text-[#F6FAFD] font-semibold text-xs transition-colors"
+                        >
+                          🗺️ Go There
+                        </a>
                       </div>
                     )}
                   </div>
                 </div>
               )}
+
 
               {/* Author & Organization Header */}
               <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#4A7FA7]/30">

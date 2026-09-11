@@ -956,3 +956,88 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
   setLocal(LOCAL_CHAT_MSGS, msgs);
   return { data: newMsg, error: null };
 }
+
+/**
+ * Get all chat rooms the current user is a participant in
+ * Returns [{ room_id, post_id, post_title, last_message_at }]
+ */
+export async function getAccessibleChatRooms() {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) return { data: [], error: null };
+
+      // Get participant rows for this user
+      const { data: participantRows, error: partErr } = await supabase
+        .from('chat_participants')
+        .select('chat_room_id')
+        .eq('user_id', authData.user.id);
+
+      if (partErr || !participantRows || participantRows.length === 0) {
+        return { data: [], error: partErr || null };
+      }
+
+      const roomIds = participantRows.map(r => r.chat_room_id);
+
+      // Fetch room details + post title
+      const { data: rooms, error: roomErr } = await supabase
+        .from('chat_rooms')
+        .select('id, post_id, created_at, posts:post_id(title)')
+        .in('id', roomIds)
+        .order('created_at', { ascending: false });
+
+      if (roomErr) return { data: [], error: roomErr };
+
+      const result = (rooms || []).map(r => ({
+        room_id: r.id,
+        post_id: r.post_id,
+        post_title: r.posts?.title || 'Untitled Challenge',
+        created_at: r.created_at,
+      }));
+
+      return { data: result, error: null };
+    } catch (err) {
+      return { data: [], error: { message: err.message } };
+    }
+  }
+
+  // Fallback local
+  const session = getLocal(LOCAL_SESSION, {});
+  const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
+  const posts = getLocal(LOCAL_POSTS, []);
+  const accessible = rooms
+    .filter(r => r.participants?.includes(session.id))
+    .map(r => {
+      const p = posts.find(p => p.id === r.post_id);
+      return {
+        room_id: r.id,
+        post_id: r.post_id,
+        post_title: p?.title || 'Untitled Challenge',
+        created_at: r.created_at || new Date().toISOString(),
+      };
+    });
+  return { data: accessible, error: null };
+}
+
+/**
+ * Update post progress percentage (0-100) — author only
+ */
+export async function updatePostProgress(postId, percentage) {
+  const clamped = Math.max(0, Math.min(100, Math.round(percentage)));
+
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ progress: clamped })
+      .eq('id', postId)
+      .select()
+      .single();
+    return { data, error };
+  }
+
+  // Fallback local
+  const posts = getLocal(LOCAL_POSTS, []);
+  const updated = posts.map(p => p.id === postId ? { ...p, progress: clamped } : p);
+  setLocal(LOCAL_POSTS, updated);
+  return { data: { id: postId, progress: clamped }, error: null };
+}

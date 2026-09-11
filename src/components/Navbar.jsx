@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Bell, LogOut, FileText, ChevronDown, Sparkles, Lightbulb, Menu, X as CloseIcon } from 'lucide-react';
+import { ArrowRight, Bell, LogOut, FileText, ChevronDown, Sparkles, Lightbulb, Menu, X as CloseIcon, MessageSquare } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ContactRequestReviewModal from './ContactRequestReviewModal';
 import PostDetailModal from './PostDetailModal';
@@ -175,7 +175,16 @@ const Navbar = () => {
           {/* Right Section: Auth State dependent UI */}
           {currentUser ? (
             <div className="flex items-center gap-3">
-              
+
+              {/* Messages Icon Button */}
+              <Link
+                to="/messages"
+                className="relative p-2 rounded-xl bg-[#0A1931]/80 hover:bg-[#1A3D63] border border-[#4A7FA7]/30 text-[#B3CFE5] hover:text-[#F6FAFD] transition-colors"
+                aria-label="Messages"
+              >
+                <MessageSquare className="w-5 h-5 text-[#B3CFE5]" />
+              </Link>
+
               {/* Notification Bell Button */}
               <div className="relative" ref={notifRef}>
                 <button
@@ -186,8 +195,8 @@ const Navbar = () => {
                 >
                   <Bell className="w-5 h-5 text-[#B3CFE5]" />
                   
-                  {/* Unread Glowing Dot */}
-                  {unreadCount > 0 && (
+                  {/* Unread Glowing Dot — excludes chat_message type */}
+                  {notifications.filter(n => !n.read && n.type !== 'chat_message').length > 0 && (
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
                   )}
                 </button>
@@ -198,13 +207,13 @@ const Navbar = () => {
                     <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#4A7FA7]/30">
                       <span className="font-bold text-[#F6FAFD] font-['Outfit'] text-sm">Notifications</span>
                       <span className="text-[10px] font-mono text-[#B3CFE5] font-semibold uppercase">
-                        {notifications.length} Total
+                        {notifications.filter(n => n.type !== 'chat_message').length} Total
                       </span>
                     </div>
 
-                    {notifications.length > 0 ? (
+                    {notifications.filter(n => n.type !== 'chat_message').length > 0 ? (
                       <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                        {notifications.map((n) => (
+                        {notifications.filter(n => n.type !== 'chat_message').map((n) => (
                           <div
                             key={n.id}
                             onClick={() => handleNotifClick(n)}
@@ -319,13 +328,22 @@ const Navbar = () => {
         {showMobileNav && (
           <div className="md:hidden mx-4 mt-2 p-4 bg-[#1A3D63]/95 border border-[#4A7FA7]/40 rounded-2xl backdrop-blur-2xl shadow-2xl flex flex-col gap-3 text-sm text-[#F6FAFD] animate-fade-in">
             {currentUser ? (
-              <Link
-                to="/feed"
-                onClick={() => { setFeedFilter('all'); setShowMobileNav(false); }}
-                className="py-2 px-3 rounded-lg text-[#F6FAFD] font-semibold bg-[#4A7FA7]/30 border border-[#4A7FA7]/50 flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4 text-[#B3CFE5]" /> Live Feed
-              </Link>
+              <>
+                <Link
+                  to="/feed"
+                  onClick={() => { setFeedFilter('all'); setShowMobileNav(false); }}
+                  className="py-2 px-3 rounded-lg text-[#F6FAFD] font-semibold bg-[#4A7FA7]/30 border border-[#4A7FA7]/50 flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4 text-[#B3CFE5]" /> Live Feed
+                </Link>
+                <Link
+                  to="/messages"
+                  onClick={() => setShowMobileNav(false)}
+                  className="py-2 px-3 rounded-lg text-[#F6FAFD] font-semibold bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center gap-2"
+                >
+                  <MessageSquare className="w-4 h-4 text-[#B3CFE5]" /> Messages
+                </Link>
+              </>
             ) : (
               <>
                 <Link 
