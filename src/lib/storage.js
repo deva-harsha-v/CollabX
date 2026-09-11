@@ -54,6 +54,11 @@ export async function getCurrentUser() {
 
       if (profErr || !profile) return { data: null, error: profErr };
 
+      const localSkills = getLocal(`collabx_user_skills_${profile.id}`, []);
+      const userSkills = Array.isArray(profile.skills) && profile.skills.length > 0 
+        ? profile.skills 
+        : localSkills;
+
       return {
         data: {
           id: profile.id,
@@ -61,6 +66,7 @@ export async function getCurrentUser() {
           email: profile.email,
           phone: profile.phone,
           avatar: profile.avatar_url,
+          skills: userSkills,
           verification_uploaded: profile.verification_uploaded,
           verification_document_url: profile.verification_document_url,
         },
@@ -73,7 +79,11 @@ export async function getCurrentUser() {
 
   // Fallback Local Storage
   const session = getLocal(LOCAL_SESSION, null);
-  return { data: session, error: null };
+  if (session) {
+    const localSkills = getLocal(`collabx_user_skills_${session.id}`, session.skills || []);
+    return { data: { ...session, skills: localSkills }, error: null };
+  }
+  return { data: null, error: null };
 }
 
 /**
@@ -81,6 +91,7 @@ export async function getCurrentUser() {
  */
 export async function signUp(userData) {
   const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}`;
+  const skills = Array.isArray(userData.skills) ? userData.skills : [];
 
   if (isSupabaseConfigured) {
     try {
@@ -101,6 +112,9 @@ export async function signUp(userData) {
 
       const userId = authData.user.id;
       let avatarUrl = defaultAvatar;
+
+      // Save user skills in local cache map
+      setLocal(`collabx_user_skills_${userId}`, skills);
 
       // Handle custom avatar upload if provided and session is authenticated
       if (userData.avatar && userData.avatar.startsWith('data:image')) {
@@ -128,6 +142,7 @@ export async function signUp(userData) {
         email: userData.email.toLowerCase().trim(),
         phone: userData.phone || null,
         avatar_url: avatarUrl,
+        skills: skills.length > 0 ? skills : null,
         verification_uploaded: false,
       }], { onConflict: 'id' });
 
@@ -141,6 +156,7 @@ export async function signUp(userData) {
         email: userData.email.toLowerCase().trim(),
         phone: userData.phone || null,
         avatar: avatarUrl,
+        skills: skills,
         verification_uploaded: false,
       };
 
@@ -156,13 +172,17 @@ export async function signUp(userData) {
     return { data: null, error: { message: 'An account with this email already exists.' } };
   }
 
+  const newUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  setLocal(`collabx_user_skills_${newUserId}`, skills);
+
   const newUser = {
-    id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: newUserId,
     name: userData.name.trim(),
     email: userData.email.toLowerCase().trim(),
     password: userData.password,
     phone: userData.phone || null,
     avatar: userData.avatar || defaultAvatar,
+    skills: skills,
     verification_uploaded: false,
     verification_document_url: null,
     createdAt: new Date().toISOString(),
@@ -194,12 +214,18 @@ export async function signIn(email, password) {
         .eq('id', authData.user.id)
         .single();
 
+      const localSkills = getLocal(`collabx_user_skills_${profile.id}`, []);
+      const userSkills = Array.isArray(profile.skills) && profile.skills.length > 0 
+        ? profile.skills 
+        : localSkills;
+
       const user = {
         id: profile.id,
         name: profile.name,
         email: profile.email,
         phone: profile.phone,
         avatar: profile.avatar_url,
+        skills: userSkills,
         verification_uploaded: profile.verification_uploaded,
       };
 
@@ -214,8 +240,11 @@ export async function signIn(email, password) {
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
   if (!user) return { data: null, error: { message: 'Invalid email or password.' } };
 
-  setLocal(LOCAL_SESSION, user);
-  return { data: user, error: null };
+  const localSkills = getLocal(`collabx_user_skills_${user.id}`, user.skills || []);
+  const userWithSkills = { ...user, skills: localSkills };
+
+  setLocal(LOCAL_SESSION, userWithSkills);
+  return { data: userWithSkills, error: null };
 }
 
 /**
@@ -1109,7 +1138,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
       if (msgErr) return { data: null, error: msgErr };
 
-      // Dispatch in-app notifications to all other participants in this chat room
+      // Dispatch in-app notifications to other participants in this chat room
       try {
         const { data: senderProf } = await supabase
           .from('profiles')
@@ -1120,50 +1149,20 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
         const { data: roomData } = await supabase
           .from('chat_rooms')
-          .select('post_id, posts:post_id(id, title, author_id)')
+          .select('post_id, posts:post_id(title)')
           .eq('id', roomId)
           .maybeSingle();
         const postTitle = roomData?.posts?.title || 'Challenge';
-        const postAuthorId = roomData?.posts?.author_id;
-
-        const targetUserIds = new Set();
 
         const { data: participants } = await supabase
           .from('chat_participants')
           .select('user_id')
-          .eq('chat_room_id', roomId);
-        if (participants) {
-          participants.forEach(p => {
-            if (p.user_id && p.user_id !== authData.user.id) {
-              targetUserIds.add(p.user_id);
-            }
-          });
-        }
+          .eq('chat_room_id', roomId)
+          .neq('user_id', authData.user.id);
 
-        if (postAuthorId && postAuthorId !== authData.user.id) {
-          targetUserIds.add(postAuthorId);
-        }
-
-        if (roomData?.post_id) {
-          const { data: contacts } = await supabase
-            .from('contact_requests')
-            .select('solver_id')
-            .eq('post_id', roomData.post_id)
-            .eq('status', 'accepted');
-          if (contacts) {
-            contacts.forEach(c => {
-              if (c.solver_id && c.solver_id !== authData.user.id) {
-                targetUserIds.add(c.solver_id);
-              }
-            });
-          }
-        }
-
-        targetUserIds.delete(authData.user.id);
-
-        if (targetUserIds.size > 0) {
-          const notifsToInsert = Array.from(targetUserIds).map(uid => ({
-            user_id: uid,
+        if (participants && participants.length > 0) {
+          const notifsToInsert = participants.map(p => ({
+            user_id: p.user_id,
             type: 'chat_message',
             message: `New message from ${senderName} in "${postTitle}"`,
             payload: {
@@ -1211,21 +1210,12 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
   try {
     const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
     const room = rooms.find(r => r.id === roomId);
-    const posts = getLocal(LOCAL_POSTS, []);
-    const post = posts.find(p => p.id === room?.post_id);
-    const contacts = getLocal(LOCAL_CONTACTS, []);
-
-    const targetUserIds = new Set(room?.participants || []);
-    if (post?.authorId) targetUserIds.add(post.authorId);
-    if (post?.author_id) targetUserIds.add(post.author_id);
-    contacts
-      .filter(c => c.post_id === room?.post_id && c.status === 'accepted')
-      .forEach(c => targetUserIds.add(c.solver_id));
-    targetUserIds.delete(session.id);
-
-    if (targetUserIds.size > 0) {
+    if (room && room.participants) {
+      const posts = getLocal(LOCAL_POSTS, []);
+      const post = posts.find(p => p.id === room.post_id);
+      const otherParticipants = room.participants.filter(pid => pid !== session.id);
       const notifs = getLocal(LOCAL_NOTIFS, []);
-      targetUserIds.forEach(pid => {
+      otherParticipants.forEach(pid => {
         notifs.unshift({
           id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           user_id: pid,
@@ -1234,7 +1224,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
           payload: {
             room_id: roomId,
             roomId: roomId,
-            post_id: room?.post_id,
+            post_id: room.post_id,
             post_title: post?.title,
             sender_id: session.id,
             sender_name: session.name,
@@ -1423,9 +1413,13 @@ export async function updatePostProgress(postId, percentage) {
 }
 
 /**
- * User Profile: Update Name, Phone, and Avatar
+ * User Profile: Update Name, Phone, Avatar, and Skills
  */
-export async function updateUserProfile(userId, { name, phone, avatar }) {
+export async function updateUserProfile(userId, { name, phone, avatar, skills }) {
+  if (skills !== undefined) {
+    setLocal(`collabx_user_skills_${userId}`, skills);
+  }
+
   if (isSupabaseConfigured) {
     try {
       let avatarUrl = avatar;
@@ -1448,6 +1442,7 @@ export async function updateUserProfile(userId, { name, phone, avatar }) {
       if (name) updatePayload.name = name.trim();
       if (phone !== undefined) updatePayload.phone = phone ? phone.trim() : null;
       if (avatarUrl) updatePayload.avatar_url = avatarUrl;
+      if (skills !== undefined) updatePayload.skills = skills;
 
       const { data: updatedProfile, error: updateErr } = await supabase
         .from('profiles')
@@ -1456,7 +1451,37 @@ export async function updateUserProfile(userId, { name, phone, avatar }) {
         .select()
         .single();
 
-      if (updateErr) return { data: null, error: updateErr };
+      if (updateErr) {
+        // If updating skills column errored because column doesn't exist in Supabase table, update without skills
+        delete updatePayload.skills;
+        const { data: retryProfile, error: retryErr } = await supabase
+          .from('profiles')
+          .update(updatePayload)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (retryErr) return { data: null, error: retryErr };
+        
+        const localSkills = getLocal(`collabx_user_skills_${userId}`, skills || []);
+        return {
+          data: {
+            id: retryProfile.id,
+            name: retryProfile.name,
+            email: retryProfile.email,
+            phone: retryProfile.phone,
+            avatar: retryProfile.avatar_url,
+            skills: localSkills,
+            verification_uploaded: retryProfile.verification_uploaded,
+            verification_document_url: retryProfile.verification_document_url,
+          },
+          error: null,
+        };
+      }
+
+      const finalSkills = skills !== undefined 
+        ? skills 
+        : (updatedProfile.skills || getLocal(`collabx_user_skills_${userId}`, []));
 
       return {
         data: {
@@ -1465,6 +1490,7 @@ export async function updateUserProfile(userId, { name, phone, avatar }) {
           email: updatedProfile.email,
           phone: updatedProfile.phone,
           avatar: updatedProfile.avatar_url,
+          skills: finalSkills,
           verification_uploaded: updatedProfile.verification_uploaded,
           verification_document_url: updatedProfile.verification_document_url,
         },
@@ -1483,6 +1509,7 @@ export async function updateUserProfile(userId, { name, phone, avatar }) {
     if (name) users[idx].name = name.trim();
     if (phone !== undefined) users[idx].phone = phone;
     if (avatar) users[idx].avatar = avatar;
+    if (skills !== undefined) users[idx].skills = skills;
     setLocal(LOCAL_USERS, users);
   }
 
@@ -1491,6 +1518,7 @@ export async function updateUserProfile(userId, { name, phone, avatar }) {
     name: name ? name.trim() : session.name,
     phone: phone !== undefined ? phone : session.phone,
     avatar: avatar || session.avatar,
+    skills: skills !== undefined ? skills : (session.skills || []),
   };
   setLocal(LOCAL_SESSION, updatedSession);
 

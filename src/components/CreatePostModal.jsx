@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import RoleAutocompleteInput from './RoleAutocompleteInput';
 
 const CreatePostModal = ({ isOpen, onClose }) => {
   const { addNewPost } = useApp();
@@ -9,8 +10,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
   const [description, setDescription] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   
-  // Tag-style Skills input (OPTIONAL)
-  const [skillInput, setSkillInput] = useState('');
+  // Roles / Skills list
   const [skills, setSkills] = useState([]);
 
   const [organization, setOrganization] = useState('');
@@ -28,23 +28,6 @@ const CreatePostModal = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
-
-  // Add Skill Tag
-  const handleAddSkill = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const trimmed = skillInput.trim().replace(/,/g, '');
-      if (trimmed && !skills.includes(trimmed)) {
-        setSkills([...skills, trimmed]);
-        setSkillInput('');
-        setErrorMsg('');
-      }
-    }
-  };
-
-  const removeSkill = (skillToRemove) => {
-    setSkills(skills.filter(s => s !== skillToRemove));
-  };
 
   // Media File Upload
   const handleMediaChange = (e) => {
@@ -107,7 +90,6 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     setTitle('');
     setDescription('');
     setPhoneNumber('');
-    setSkillInput('');
     setSkills([]);
     setOrganization('');
     setAddress('');
@@ -246,39 +228,14 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             />
           </div>
 
-          {/* Skills Required (Tag Input, OPTIONAL) */}
+          {/* Skills / Roles Autocomplete (Curated list of 130+ professional roles) */}
           <div>
-            <label className="block text-xs font-semibold text-[#F6DBC0] uppercase tracking-wider mb-1">
-              Required Roles / Skills <span className="text-[10px] text-[#F6DBC0]/70 font-normal">(Optional)</span>
-            </label>
-            <div className="p-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl focus-within:border-[#F6DBC0] transition-colors">
-              <div className="flex flex-wrap gap-2 mb-1.5">
-                {skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#935073] border border-[#935073]/40 text-[#F6DBC0] text-xs font-mono"
-                  >
-                    <span>{skill}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeSkill(skill)}
-                      className="hover:text-red-400 text-[#F6DBC0]/70 ml-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <input
-                type="text"
-                placeholder={skills.length === 0 ? "Type a skill & press Enter (e.g. Hydrology, GIS Mapping)" : "Type more skills..."}
-                value={skillInput}
-                onChange={(e) => setSkillInput(e.target.value)}
-                onKeyDown={handleAddSkill}
-                className="w-full bg-transparent text-sm text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none"
-              />
-            </div>
-            <p className="text-[10px] text-[#F6DBC0]/70 mt-1 font-mono">Press Enter or comma to add a skill tag.</p>
+            <RoleAutocompleteInput
+              selectedRoles={skills}
+              onChange={setSkills}
+              label="Required Roles / Skills"
+              placeholder="Search roles (e.g. 'hy' for Hydrologist, 'gis' for GIS Specialist)..."
+            />
           </div>
 
           {/* Organization & Physical Address */}

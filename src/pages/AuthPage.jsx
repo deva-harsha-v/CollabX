@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound } from 'lucide-react';
 import { signUp, signIn, adminSignIn } from '../lib/storage';
 import { useApp } from '../context/AppContext';
+import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null); // base64 string
+  const [skills, setSkills] = useState([]);
   const [docName, setDocName] = useState('');
   const [docBase64, setDocBase64] = useState(null);
 
@@ -113,6 +115,7 @@ const AuthPage = () => {
         email,
         password,
         avatar: avatarPreview || getInitialsAvatar(name),
+        skills,
         verificationDocument: docBase64 ? { name: docName, base64: docBase64 } : null,
       });
 
@@ -321,6 +324,18 @@ const AuthPage = () => {
                   className="w-full pl-10 pr-4 py-3 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-sm text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Roles & Skills Selection (Sign Up Only) */}
+          {mode === 'signup' && (
+            <div>
+              <RoleAutocompleteInput
+                selectedRoles={skills}
+                onChange={setSkills}
+                label="My Skills & Roles (Optional)"
+                placeholder="Choose your skills (e.g. 'hy' for Hydrologist)..."
+              />
             </div>
           )}
 

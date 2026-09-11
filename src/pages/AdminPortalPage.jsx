@@ -850,6 +850,109 @@ const AdminPortalPage = () => {
               </div>
             )}
 
+            {/* Accepted Solvers / Collaborators Dossier */}
+            {(() => {
+              const solvers = contactRequests.filter(c => c.post_id === selectedPost.id && c.status === 'accepted');
+              return (
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-mono uppercase tracking-wider text-red-300 font-bold flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-red-400" />
+                      <span>Accepted Solvers & Collaborators ({solvers.length})</span>
+                    </label>
+                    <span className="text-[10px] font-mono text-[#F6DBC0]/70">
+                      {solvers.length > 0 ? 'Verified solvers working on challenge' : 'No solvers assigned yet'}
+                    </span>
+                  </div>
+
+                  {solvers.length > 0 ? (
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {solvers.map((s) => {
+                        const solverProfile = users.find(u => u.id === s.solver_id) || {};
+                        const solverName = solverProfile.name || s.solver_name || 'Solver';
+                        const solverEmail = solverProfile.email || s.solver_email || 'Email hidden';
+                        const solverPhone = solverProfile.phone || s.solver_phone || 'Phone hidden';
+                        const solverAvatar = solverProfile.avatar_url || s.solver_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(solverName)}`;
+                        const isVerified = solverProfile.verification_uploaded;
+
+                        return (
+                          <div
+                            key={s.id || s.solver_id}
+                            className="p-3.5 rounded-2xl bg-[#502D55]/90 border border-red-500/30 flex items-center justify-between gap-3 shadow-md"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-full overflow-hidden border border-red-400 bg-[#502D55] shrink-0">
+                                <img
+                                  src={solverAvatar}
+                                  alt={solverName}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(solverName)}`;
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-xs text-[#F8F4E9] truncate">{solverName}</span>
+                                  {isVerified ? (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
+                                      <ShieldCheck className="w-2.5 h-2.5" /> VERIFIED
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-mono text-[#F6DBC0]/60">Unverified</span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] font-mono text-[#F6DBC0]/80 flex items-center gap-3 mt-0.5 flex-wrap">
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-2.5 h-2.5 text-[#F6DBC0]" /> {solverEmail}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-2.5 h-2.5 text-[#F6DBC0]" /> {solverPhone}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] font-mono text-[#F6DBC0]/50 block mt-0.5">
+                                  Accepted: {new Date(s.created_at || Date.now()).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {solverProfile.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedPost(null);
+                                    setSelectedUser(solverProfile);
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 text-white text-[11px] font-semibold transition-colors shadow"
+                                >
+                                  Profile
+                                </button>
+                              )}
+                              {isVerified && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewVerificationDoc(solverProfile)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#935073]/40 hover:bg-[#935073]/60 border border-[#935073]/60 text-[11px] font-semibold text-[#F6DBC0] transition-colors"
+                                >
+                                  Doc
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-[#502D55]/50 border border-[#935073]/20 text-xs text-[#F6DBC0]/70 font-mono italic">
+                      No solvers have been accepted by the author for this challenge yet.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Footer Actions */}
             <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#935073]/30">
               {selectedPost.status !== 'deleted' ? (

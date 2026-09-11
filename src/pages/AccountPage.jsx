@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Lock, Camera, Check, AlertCircle, ArrowLeft, ShieldCheck, KeyRound } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useApp } from '../context/AppContext';
 import { updateUserProfile, changeUserPassword } from '../lib/storage';
+import RoleAutocompleteInput from '../components/RoleAutocompleteInput';
 
 const AccountPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const AccountPage = () => {
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [avatarPreview, setAvatarPreview] = useState(currentUser?.avatar || '');
   const [avatarFile, setAvatarFile] = useState(null);
+  const [skills, setSkills] = useState(currentUser?.skills || []);
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -48,6 +50,7 @@ const AccountPage = () => {
       name: name.trim(),
       phone: phone.trim(),
       avatar: avatarFile || avatarPreview,
+      skills,
     });
 
     setIsSavingProfile(false);
@@ -231,6 +234,16 @@ const AccountPage = () => {
                       className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
                     />
                   </div>
+                </div>
+
+                {/* My Skills & Roles */}
+                <div>
+                  <RoleAutocompleteInput
+                    selectedRoles={skills}
+                    onChange={setSkills}
+                    label="My Skills & Roles"
+                    placeholder="Search & add your roles (e.g. 'hy' for Hydrologist)..."
+                  />
                 </div>
 
                 <div className="pt-2">

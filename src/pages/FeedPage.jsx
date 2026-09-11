@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, ArrowLeft, Layers, Lightbulb, MessageSquare } from 'lucide-react';
+import { Plus, Sparkles, ArrowLeft, Layers, Lightbulb, MessageSquare, Filter, Search, X, Tag, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import ChatRoomModal from '../components/ChatRoomModal';
+import { AVAILABLE_ROLES } from '../data/rolesData';
 import { 
   getAllPosts, 
   getPostsByUser, 
@@ -24,6 +25,11 @@ const FeedPage = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeChatPost, setActiveChatPost] = useState(null); // { id, title }
+
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('');
+  const [progressFilter, setProgressFilter] = useState('all'); // 'all' | 'lt25' | '25to50' | '50to75' | 'gt75' | 'completed'
 
   const isMyPosts = location.pathname === '/my-posts';
   const isMyIdeas = location.pathname === '/my-ideas';
@@ -68,6 +74,57 @@ const FeedPage = () => {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, progress: percentage } : p));
     await updatePostProgress(postId, percentage);
   };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedRoleFilter('');
+    setProgressFilter('all');
+  };
+
+  const isAnyFilterActive = searchQuery.trim() !== '' || selectedRoleFilter !== '' || progressFilter !== 'all';
+
+  // Extract unique roles present in loaded posts + popular roles
+  const activePostRoles = useMemo(() => {
+    const set = new Set();
+    posts.forEach(p => {
+      if (Array.isArray(p.skills)) {
+        p.skills.forEach(s => set.add(s));
+      }
+    });
+    return Array.from(set).sort();
+  }, [posts]);
+
+  // Combined Real-time Filtered Posts
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      // 1. Text Search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = (post.title || '').toLowerCase().includes(q);
+        const matchDesc = (post.description || '').toLowerCase().includes(q);
+        const matchOrg = (post.organization || '').toLowerCase().includes(q);
+        const matchSkills = (post.skills || []).some(s => s.toLowerCase().includes(q));
+        if (!matchTitle && !matchDesc && !matchOrg && !matchSkills) return false;
+      }
+
+      // 2. Role Filter
+      if (selectedRoleFilter) {
+        const skills = Array.isArray(post.skills) ? post.skills : [];
+        const hasRole = skills.some(s => s.toLowerCase() === selectedRoleFilter.toLowerCase());
+        if (!hasRole) return false;
+      }
+
+      // 3. Progress Filter
+      const prog = post.progress ?? 0;
+      if (progressFilter === 'lt25' && prog >= 25) return false;
+      if (progressFilter === '25to50' && (prog < 25 || prog > 50)) return false;
+      if (progressFilter === '50to75' && (prog < 50 || prog > 75)) return false;
+      if (progressFilter === 'gt75' && prog < 75) return false;
+      if (progressFilter === 'completed' && prog < 100) return false;
+
+      return true;
+    });
+  }, [posts, searchQuery, selectedRoleFilter, progressFilter]);
 
   const getHeaderTitle = () => {
     if (isMyPosts) return 'Your Posted Challenges';
@@ -131,15 +188,138 @@ const FeedPage = () => {
           )}
         </div>
 
+        {/* Dynamic Live Filter Controls */}
+        {!isFiltered && (
+          <div className="mb-6 p-4 rounded-2xl bg-[#935073]/80 border border-[#935073]/40 backdrop-blur-xl shadow-lg space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Search by Keywords */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F6DBC0]/60" />
+                <input
+                  type="text"
+                  placeholder="Search challenges by title, description, or organization..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] placeholder:text-[#F6DBC0]/40 focus:outline-none focus:border-[#F6DBC0] transition-colors font-mono"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F6DBC0]/60 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                {/* Role / Skill Filter */}
+                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
+                  <select
+                    value={selectedRoleFilter}
+                    onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] focus:outline-none focus:border-[#F6DBC0] font-mono cursor-pointer"
+                  >
+                    <option value="" className="bg-[#502D55] text-[#F8F4E9]">All Roles / Skills</option>
+                    {/* First list roles present in active posts */}
+                    {activePostRoles.length > 0 && (
+                      <optgroup label="Active in Feed" className="bg-[#502D55] text-[#F6DBC0] font-bold">
+                        {activePostRoles.map(r => (
+                          <option key={`active_${r}`} value={r} className="bg-[#502D55] text-[#F8F4E9]">
+                            {r}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="All Roles Directory" className="bg-[#502D55] text-[#F6DBC0] font-bold">
+                      {AVAILABLE_ROLES.filter(r => !activePostRoles.includes(r)).map(r => (
+                        <option key={`all_${r}`} value={r} className="bg-[#502D55] text-[#F8F4E9]">
+                          {r}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* Progress Percentage Filter */}
+                <div className="relative min-w-[150px] flex-1 sm:flex-initial">
+                  <select
+                    value={progressFilter}
+                    onChange={(e) => setProgressFilter(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-[#502D55]/80 border border-[#935073]/40 rounded-xl text-xs text-[#F8F4E9] focus:outline-none focus:border-[#F6DBC0] font-mono cursor-pointer"
+                  >
+                    <option value="all" className="bg-[#502D55]">All Progress</option>
+                    <option value="lt25" className="bg-[#502D55]">Under 25% (Just Started)</option>
+                    <option value="25to50" className="bg-[#502D55]">25% - 50% (In Progress)</option>
+                    <option value="50to75" className="bg-[#502D55]">50% - 75% (Advancing)</option>
+                    <option value="gt75" className="bg-[#502D55]">75%+ (Near Completion)</option>
+                    <option value="completed" className="bg-[#502D55]">100% (Completed)</option>
+                  </select>
+                </div>
+
+                {/* Reset Filters CTA */}
+                {isAnyFilterActive && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="p-2.5 rounded-xl bg-red-950/80 hover:bg-red-900/80 border border-red-500/40 text-red-300 hover:text-red-200 text-xs font-semibold flex items-center gap-1 shrink-0 transition-colors"
+                    title="Reset All Filters"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Reset</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters Pill Bar & Results Count */}
+            <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[#935073]/20 text-xs font-mono">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[#F6DBC0]/60 text-[11px]">Filtered by:</span>
+                {selectedRoleFilter ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#502D55] border border-red-500/50 text-red-300 text-[11px]">
+                    <span>Role: {selectedRoleFilter}</span>
+                    <button type="button" onClick={() => setSelectedRoleFilter('')} className="hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="text-[#F8F4E9]/80 text-[11px]">Any Role</span>
+                )}
+                {progressFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#502D55] border border-red-500/50 text-red-300 text-[11px]">
+                    <span>
+                      Progress: {
+                        progressFilter === 'lt25' ? '< 25%' :
+                        progressFilter === '25to50' ? '25% - 50%' :
+                        progressFilter === '50to75' ? '50% - 75%' :
+                        progressFilter === 'gt75' ? '75%+' : '100%'
+                      }
+                    </span>
+                    <button type="button" onClick={() => setProgressFilter('all')} className="hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+
+              <span className="text-[#F6DBC0]/70 text-[11px]">
+                Showing {filteredPosts.length} of {posts.length} challenges
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Posts List or Centered Empty State */}
         {loadingPosts ? (
           <div className="py-20 text-center text-[#F6DBC0] font-mono text-xs flex items-center justify-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F6DBC0] animate-ping" />
             <span>Loading challenge records...</span>
           </div>
-        ) : posts.length > 0 ? (
+        ) : filteredPosts.length > 0 ? (
           <div className="space-y-4">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <div key={post.id} className="relative group">
                 <PostCard
                   post={post}
@@ -176,7 +356,9 @@ const FeedPage = () => {
             </div>
 
             <h3 className="font-['Outfit'] font-bold text-xl text-[#F8F4E9] mb-2">
-              {isMyPosts
+              {isAnyFilterActive
+                ? 'No Challenges Match Your Filter Criteria'
+                : isMyPosts
                 ? "You Haven't Posted Any Challenges Yet"
                 : isMyIdeas
                 ? 'No Accepted Ideas Yet'
@@ -184,14 +366,24 @@ const FeedPage = () => {
             </h3>
 
             <p className="text-sm text-[#F6DBC0] max-w-md mx-auto mb-6 leading-relaxed">
-              {isMyPosts
+              {isAnyFilterActive
+                ? 'Try adjusting your role or progress filters to see more challenges.'
+                : isMyPosts
                 ? 'When you post a challenge brief, it will appear here for progress tracking and management.'
                 : isMyIdeas
                 ? 'When a poster accepts your contact request, the project will appear here with unlocked details and chat.'
                 : 'Be the first to post a challenge and connect with verified solvers.'}
             </p>
 
-            {isFiltered ? (
+            {isAnyFilterActive ? (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="px-5 py-2.5 rounded-full bg-[#502D55] hover:bg-[#935073] text-xs font-semibold text-[#F6DBC0] border border-[#935073]/40 transition-colors"
+              >
+                Clear All Filters
+              </button>
+            ) : isFiltered ? (
               <button
                 type="button"
                 onClick={() => navigate('/feed')}
