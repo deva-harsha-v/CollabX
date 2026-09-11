@@ -201,19 +201,28 @@ CREATE POLICY "Posters can update contact requests"
 
 -- CHAT POLICIES (Using security definer function to avoid infinite recursion)
 DROP POLICY IF EXISTS "Chat participants can view their rooms" ON public.chat_rooms;
+DROP POLICY IF EXISTS "Posters can insert chat rooms" ON public.chat_rooms;
 DROP POLICY IF EXISTS "Chat participants can view participant lists" ON public.chat_participants;
+DROP POLICY IF EXISTS "Users can insert chat participants" ON public.chat_participants;
 DROP POLICY IF EXISTS "Chat participants can view messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Chat participants can insert messages" ON public.chat_messages;
 
 CREATE POLICY "Chat participants can view their rooms" 
     ON public.chat_rooms FOR SELECT USING (
-        public.is_chat_participant(id, auth.uid())
+        public.is_chat_participant(id, auth.uid()) OR
+        auth.uid() IN (SELECT author_id FROM public.posts WHERE id = post_id)
     );
+
+CREATE POLICY "Posters can insert chat rooms" 
+    ON public.chat_rooms FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Chat participants can view participant lists" 
     ON public.chat_participants FOR SELECT USING (
         user_id = auth.uid() OR public.is_chat_participant(chat_room_id, auth.uid())
     );
+
+CREATE POLICY "Users can insert chat participants" 
+    ON public.chat_participants FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Chat participants can view messages" 
     ON public.chat_messages FOR SELECT USING (
@@ -224,6 +233,17 @@ CREATE POLICY "Chat participants can insert messages"
     ON public.chat_messages FOR INSERT WITH CHECK (
         auth.uid() = sender_id AND public.is_chat_participant(chat_room_id, auth.uid())
     );
+
+-- Enable Supabase Realtime for Chat Messages
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
 
 -- ============================================================================
 -- SECURITY DEFINER RPC FUNCTIONS (SERVER-SIDE IDENTITY DERIVATION VIA auth.uid())

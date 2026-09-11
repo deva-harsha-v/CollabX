@@ -819,12 +819,40 @@ export async function markAllNotificationsRead(userId) {
  */
 export async function getChatRoomForPost(postId) {
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('chat_rooms')
-      .select('*')
-      .eq('post_id', postId)
-      .single();
-    return { data, error };
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      let { data: room, error } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('post_id', postId)
+        .maybeSingle();
+
+      if (!room && authData?.user) {
+        const { data: postDetails } = await getPostDetails(postId);
+        if (postDetails?.is_authorized) {
+          const { data: newRoom, error: createRoomErr } = await supabase
+            .from('chat_rooms')
+            .insert([{ post_id: postId }])
+            .select()
+            .single();
+          if (!createRoomErr) {
+            room = newRoom;
+          }
+        }
+      }
+
+      if (room && authData?.user) {
+        // Ensure current authorized user is in chat_participants
+        await supabase.from('chat_participants').upsert([
+          { chat_room_id: room.id, user_id: authData.user.id }
+        ], { onConflict: 'chat_room_id, user_id' });
+      }
+
+      return { data: room || null, error: null };
+    } catch (err) {
+      console.error('[storage] getChatRoomForPost error:', err);
+      return { data: null, error: { message: err.message } };
+    }
   }
 
   const rooms = getLocal(LOCAL_CHAT_ROOMS, []);

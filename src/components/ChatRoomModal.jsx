@@ -100,7 +100,14 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
     setAttachment(null);
     setAttachmentName('');
 
-    const { data: newMsg } = await sendChatMessage(roomId, content, attach);
+    const { data: newMsg, error: sendErr } = await sendChatMessage(roomId, content, attach);
+
+    if (sendErr) {
+      console.error('[ChatRoomModal] Send message failed:', sendErr.message || sendErr);
+      // Restore input text so user does not lose message
+      setInputText(content);
+      return;
+    }
 
     if (newMsg) {
       setMessages(prev => {
