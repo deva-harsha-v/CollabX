@@ -105,13 +105,35 @@ $$;
 
 -- PROFILES POLICIES
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 
 CREATE POLICY "Public profiles are viewable by everyone" 
     ON public.profiles FOR SELECT USING (true);
 
+CREATE POLICY "Users can insert their own profile" 
+    ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
 CREATE POLICY "Users can update their own profile" 
     ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- POSTS POLICIES
+DROP POLICY IF EXISTS "Public posts are viewable by everyone" ON public.posts;
+DROP POLICY IF EXISTS "Authors can insert their own posts" ON public.posts;
+DROP POLICY IF EXISTS "Authors can update their own posts" ON public.posts;
+DROP POLICY IF EXISTS "Authors can delete their own posts" ON public.posts;
+
+CREATE POLICY "Public posts are viewable by everyone" 
+    ON public.posts FOR SELECT USING (status != 'deleted');
+
+CREATE POLICY "Authors can insert their own posts" 
+    ON public.posts FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Authors can update their own posts" 
+    ON public.posts FOR UPDATE USING (auth.uid() = author_id);
+
+CREATE POLICY "Authors can delete their own posts" 
+    ON public.posts FOR DELETE USING (auth.uid() = author_id);
 
 -- NOTIFICATIONS POLICIES
 DROP POLICY IF EXISTS "Users can read only their own notifications" ON public.notifications;
