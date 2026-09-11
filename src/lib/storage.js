@@ -1138,7 +1138,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
       if (msgErr) return { data: null, error: msgErr };
 
-      // Dispatch in-app notifications to other participants in this chat room
+      // Dispatch in-app notifications to all other participants in this chat room
       try {
         const { data: senderProf } = await supabase
           .from('profiles')
@@ -1149,20 +1149,46 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
         const { data: roomData } = await supabase
           .from('chat_rooms')
-          .select('post_id, posts:post_id(title)')
+          .select('post_id, posts:post_id(title, author_id)')
           .eq('id', roomId)
           .maybeSingle();
         const postTitle = roomData?.posts?.title || 'Challenge';
+        const postAuthorId = roomData?.posts?.author_id;
 
+        const recipientUserIds = new Set();
+
+        // 1. From chat_participants
         const { data: participants } = await supabase
           .from('chat_participants')
           .select('user_id')
-          .eq('chat_room_id', roomId)
-          .neq('user_id', authData.user.id);
+          .eq('chat_room_id', roomId);
+        if (participants) {
+          participants.forEach(p => recipientUserIds.add(p.user_id));
+        }
 
-        if (participants && participants.length > 0) {
-          const notifsToInsert = participants.map(p => ({
-            user_id: p.user_id,
+        // 2. Add post author if different
+        if (postAuthorId) {
+          recipientUserIds.add(postAuthorId);
+        }
+
+        // 3. Add all accepted solvers for this post
+        if (roomData?.post_id) {
+          const { data: acceptedSolvers } = await supabase
+            .from('contact_requests')
+            .select('solver_id')
+            .eq('post_id', roomData.post_id)
+            .eq('status', 'accepted');
+          if (acceptedSolvers) {
+            acceptedSolvers.forEach(s => recipientUserIds.add(s.solver_id));
+          }
+        }
+
+        // Exclude sender
+        recipientUserIds.delete(authData.user.id);
+
+        if (recipientUserIds.size > 0) {
+          const notifsToInsert = Array.from(recipientUserIds).map(userId => ({
+            user_id: userId,
             type: 'chat_message',
             message: `New message from ${senderName} in "${postTitle}"`,
             payload: {
@@ -1210,32 +1236,43 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
   try {
     const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
     const room = rooms.find(r => r.id === roomId);
+    const posts = getLocal(LOCAL_POSTS, []);
+    const post = room ? posts.find(p => p.id === room.post_id) : null;
+    
+    const recipientIds = new Set();
     if (room && room.participants) {
-      const posts = getLocal(LOCAL_POSTS, []);
-      const post = posts.find(p => p.id === room.post_id);
-      const otherParticipants = room.participants.filter(pid => pid !== session.id);
-      const notifs = getLocal(LOCAL_NOTIFS, []);
-      otherParticipants.forEach(pid => {
-        notifs.unshift({
-          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-          user_id: pid,
-          type: 'chat_message',
-          message: `New message from ${session.name || 'Collaborator'} in "${post?.title || 'Challenge'}"`,
-          payload: {
-            room_id: roomId,
-            roomId: roomId,
-            post_id: room.post_id,
-            post_title: post?.title,
-            sender_id: session.id,
-            sender_name: session.name,
-            preview: content ? (content.length > 50 ? content.substring(0, 47) + '...' : content) : 'Sent an attachment'
-          },
-          read: false,
-          created_at: new Date().toISOString()
-        });
-      });
-      setLocal(LOCAL_NOTIFS, notifs);
+      room.participants.forEach(pid => recipientIds.add(pid));
     }
+    if (post && post.author_id) recipientIds.add(post.author_id);
+    if (post && post.authorId) recipientIds.add(post.authorId);
+    
+    const reqs = getLocal('collabx_requests', []);
+    if (room && room.post_id) {
+      reqs.filter(r => r.post_id === room.post_id && r.status === 'accepted').forEach(r => recipientIds.add(r.solver_id));
+    }
+    recipientIds.delete(session.id);
+
+    const notifs = getLocal(LOCAL_NOTIFS, []);
+    recipientIds.forEach(pid => {
+      notifs.unshift({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        user_id: pid,
+        type: 'chat_message',
+        message: `New message from ${session.name || 'Collaborator'} in "${post?.title || 'Challenge'}"`,
+        payload: {
+          room_id: roomId,
+          roomId: roomId,
+          post_id: room?.post_id,
+          post_title: post?.title,
+          sender_id: session.id,
+          sender_name: session.name,
+          preview: content ? (content.length > 50 ? content.substring(0, 47) + '...' : content) : 'Sent an attachment'
+        },
+        read: false,
+        created_at: new Date().toISOString()
+      });
+    });
+    setLocal(LOCAL_NOTIFS, notifs);
   } catch (e) {
     console.warn('[storage] local notif dispatch error:', e);
   }

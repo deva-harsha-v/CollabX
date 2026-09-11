@@ -100,9 +100,14 @@ const Navbar = () => {
   };
 
   const handleLogoClick = (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const session = localStorage.getItem('collabx_session');
-    if (currentUser || session) {
+    // If user is logged in OR is already on an authenticated page (/feed, /messages, /my-posts, /my-ideas, /account, /admin), go to /feed
+    const isInsideApp = ['/feed', '/messages', '/my-posts', '/my-ideas', '/account', '/admin'].some(p => location.pathname.startsWith(p));
+    if (currentUser || session || isInsideApp) {
       setFeedFilter('all');
       navigate('/feed');
     } else {
@@ -148,11 +153,13 @@ const Navbar = () => {
               : 'px-5 sm:px-6 py-2 rounded-full bg-[#0b2240]/80 backdrop-blur-xl border border-[#0ea5e9]/30 shadow-[0_10px_35px_rgba(0,0,0,0.5)]'
           }`}
         >
-          {/* Brand Logo */}
-          <Link
-            to={currentUser ? "/feed" : "/"}
+          {/* Brand Logo - 100% Reliable navigation */}
+          <div
             onClick={handleLogoClick}
-            className="flex items-center gap-2.5 group cursor-pointer"
+            className="flex items-center gap-2.5 group cursor-pointer select-none"
+            role="button"
+            tabIndex={0}
+            title="CollabX Live Feed"
           >
             <div className="relative flex items-center justify-center w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#0ea5e9] via-[#0b2240] to-[#38bdf8] p-[1.5px] shadow-lg shadow-[#0ea5e9]/25">
               <div className="w-full h-full bg-[#06142e] rounded-[10px] flex items-center justify-center">
@@ -180,7 +187,7 @@ const Navbar = () => {
               </span>
               <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#38bdf8]/80 font-mono -mt-1 font-semibold">Challenge Grid</span>
             </div>
-          </Link>
+          </div>
 
           {/* Navigation Links - Conditional for Logged Out vs Logged In */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#38bdf8]">
