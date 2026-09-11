@@ -1807,7 +1807,16 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
 
         if (userNotifs && userNotifs.length > 0) {
           const matchingIds = userNotifs
-            .filter(n => n.payload?.room_id === roomId || n.payload?.roomId === roomId || n.payload?.room_id === cleanId || n.payload?.post_id === cleanId || n.payload?.post_id === roomId)
+            .filter(n => {
+              const p = n.payload || {};
+              const rId = p.room_id || p.roomId;
+              const cleanRId = rId ? rId.replace('room_', '') : '';
+              const pId = p.post_id || p.postId;
+              const cleanPId = pId ? pId.replace('room_', '') : '';
+              return rId === roomId || rId === cleanId || cleanRId === cleanId ||
+                     pId === roomId || pId === cleanId || cleanPId === cleanId ||
+                     (rId && roomId.includes(rId)) || (pId && roomId.includes(pId));
+            })
             .map(n => n.id);
 
           if (matchingIds.length > 0) {
@@ -1823,8 +1832,19 @@ export async function markChatRoomNotificationsRead(roomId, userId) {
 
   const notifs = getLocal(LOCAL_NOTIFS, []);
   const updated = notifs.map(n => {
-    if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId || n.payload?.room_id === cleanId || n.payload?.post_id === cleanId || n.payload?.post_id === roomId)) {
-      return { ...n, read: true };
+    if (n.type === 'chat_message') {
+      const p = n.payload || {};
+      const rId = p.room_id || p.roomId;
+      const cleanRId = rId ? rId.replace('room_', '') : '';
+      const pId = p.post_id || p.postId;
+      const cleanPId = pId ? pId.replace('room_', '') : '';
+      if (
+        rId === roomId || rId === cleanId || cleanRId === cleanId ||
+        pId === roomId || pId === cleanId || cleanPId === cleanId ||
+        (rId && roomId.includes(rId)) || (pId && roomId.includes(pId))
+      ) {
+        return { ...n, read: true };
+      }
     }
     return n;
   });

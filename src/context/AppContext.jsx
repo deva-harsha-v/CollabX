@@ -199,18 +199,31 @@ export const AppProvider = ({ children }) => {
 
   const markChatRoomRead = useCallback(async (roomId) => {
     if (!roomId) return;
+    const cleanId = roomId.replace('room_', '');
     setNotifications(prev =>
       prev.map(n => {
-        if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId)) {
-          return { ...n, read: true };
+        if (n.type === 'chat_message') {
+          const p = n.payload || {};
+          const rId = p.room_id || p.roomId;
+          const cleanRId = rId ? rId.replace('room_', '') : '';
+          const pId = p.post_id || p.postId;
+          const cleanPId = pId ? pId.replace('room_', '') : '';
+          if (
+            rId === roomId || rId === cleanId || cleanRId === cleanId ||
+            pId === roomId || pId === cleanId || cleanPId === cleanId ||
+            (rId && roomId.includes(rId)) || (pId && roomId.includes(pId))
+          ) {
+            return { ...n, read: true };
+          }
         }
         return n;
       })
     );
     if (currentUser?.id) {
       await markChatRoomNotificationsRead(roomId, currentUser.id);
+      refreshNotifications(currentUser.id);
     }
-  }, [currentUser]);
+  }, [currentUser, refreshNotifications]);
 
   const unreadChatCount = notifications.filter(n => !n.read && n.type === 'chat_message').length;
   const unreadGeneralCount = notifications.filter(n => !n.read && n.type !== 'chat_message').length;

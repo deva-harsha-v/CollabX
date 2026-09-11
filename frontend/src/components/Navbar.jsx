@@ -213,14 +213,15 @@ const Navbar = () => {
                       : 'text-[#38bdf8] hover:text-[#f0f9ff]'
                   }`}
                 >
-                  <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+                  <div className="relative flex items-center">
+                    <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+                    {unreadChatCount > 0 && (
+                      <span className="absolute -top-2 -right-2.5 flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[9px] font-mono font-black rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white border border-red-300 shadow-[0_0_12px_rgba(239,68,68,0.9)] animate-pulse">
+                        {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                      </span>
+                    )}
+                  </div>
                   <span>Messages</span>
-                  {unreadChatCount > 0 && (
-                    <span className="relative flex h-3 w-3 ml-1">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-90"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_10px_#ef4444] border border-white/60"></span>
-                    </span>
-                  )}
                 </Link>
               </>
             ) : (
@@ -343,7 +344,7 @@ const Navbar = () => {
                         <span>Messages</span>
                       </div>
                       {unreadChatCount > 0 && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-red-600 text-white border border-red-400/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse">
+                        <span className="px-2 py-0.5 text-[9px] font-mono font-black rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white border border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.85)] animate-pulse">
                           {unreadChatCount} NEW
                         </span>
                       )}
@@ -423,7 +424,7 @@ const Navbar = () => {
                     <span>Messages</span>
                   </div>
                   {unreadChatCount > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#0ea5e9] text-[#f0f9ff] border border-[#38bdf8]/60">
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-black rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white border border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.85)] animate-pulse">
                       {unreadChatCount} NEW
                     </span>
                   )}

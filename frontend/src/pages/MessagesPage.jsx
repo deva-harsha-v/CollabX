@@ -405,8 +405,8 @@ const MessagesPage = () => {
                   Active Rooms ({rooms.length})
                 </span>
                 {notifications.filter(n => !n.read && n.type === 'chat_message').length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#0ea5e9] text-[#f0f9ff] text-[10px] font-mono font-bold animate-pulse">
-                    {notifications.filter(n => !n.read && n.type === 'chat_message').length} unread
+                  <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] font-mono font-black border border-red-300 shadow-[0_0_12px_rgba(239,68,68,0.85)] animate-pulse">
+                    {notifications.filter(n => !n.read && n.type === 'chat_message').length} UNREAD
                   </span>
                 )}
               </div>
@@ -430,17 +430,24 @@ const MessagesPage = () => {
                     const isActive = selectedRoom?.room_id === room.room_id;
                     const cleanRoomId = room.room_id ? room.room_id.replace('room_', '') : '';
                     const cleanPostId = room.post_id ? room.post_id.replace('room_', '') : '';
-                    const unreadRoomCount = notifications.filter(
-                      (n) =>
-                        !n.read &&
-                        n.type === 'chat_message' &&
-                        (n.payload?.room_id === room.room_id ||
-                         n.payload?.roomId === room.room_id ||
-                         n.payload?.room_id === cleanRoomId ||
-                         n.payload?.roomId === cleanRoomId ||
-                         n.payload?.post_id === cleanPostId ||
-                         n.payload?.post_id === cleanRoomId)
-                    ).length;
+                    const unreadRoomCount = notifications.filter((n) => {
+                      if (n.read || n.type !== 'chat_message') return false;
+                      const p = n.payload || {};
+                      const rId = p.room_id || p.roomId;
+                      const cleanRId = rId ? rId.replace('room_', '') : '';
+                      const pId = p.post_id || p.postId;
+                      const cleanPId = pId ? pId.replace('room_', '') : '';
+                      return (
+                        rId === room.room_id ||
+                        rId === cleanRoomId ||
+                        cleanRId === cleanRoomId ||
+                        pId === room.post_id ||
+                        pId === cleanPostId ||
+                        cleanPId === cleanPostId ||
+                        (rId && room.room_id.includes(rId)) ||
+                        (pId && room.post_id.includes(pId))
+                      );
+                    }).length;
 
                     return (
                       <div
@@ -449,6 +456,8 @@ const MessagesPage = () => {
                           'w-full text-left px-4 py-3.5 flex items-center gap-2.5 transition-all border-b border-[#0ea5e9]/20 last:border-0 group ' +
                           (isActive
                             ? 'bg-[#0ea5e9]/25 border-l-2 border-l-[#38bdf8]'
+                            : unreadRoomCount > 0
+                            ? 'bg-red-950/20 border-l-2 border-l-red-500/80 hover:bg-red-950/35'
                             : 'hover:bg-[#0b2240]/60 border-l-2 border-l-transparent')
                         }
                       >
@@ -457,21 +466,30 @@ const MessagesPage = () => {
                           onClick={() => handleSelectRoom(room)}
                           className="flex items-center gap-3 flex-1 min-w-0 text-left"
                         >
-                          <div className="relative w-9 h-9 rounded-xl bg-[#0ea5e9]/20 border border-[#0ea5e9]/40 flex items-center justify-center shrink-0">
-                            <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+                          <div className={`relative w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            unreadRoomCount > 0 
+                              ? 'bg-red-950/60 border border-red-500/60' 
+                              : 'bg-[#0ea5e9]/20 border border-[#0ea5e9]/40'
+                          }`}>
+                            <MessageSquare className={`w-4 h-4 ${unreadRoomCount > 0 ? 'text-red-400' : 'text-[#38bdf8]'}`} />
                             {unreadRoomCount > 0 && (
-                              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-90" />
-                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 shadow-[0_0_10px_#ef4444] border border-white/60" />
+                                <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-gradient-to-r from-red-600 to-rose-600 text-[9px] font-black text-white shadow-[0_0_10px_#ef4444] border border-white/80">
+                                  {unreadRoomCount > 9 ? '9+' : unreadRoomCount}
+                                </span>
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                              <p className="text-sm font-semibold text-[#f0f9ff] truncate">{room.post_title}</p>
+                              <p className={`text-sm truncate ${unreadRoomCount > 0 ? 'font-bold text-[#f0f9ff]' : 'font-semibold text-[#f0f9ff]'}`}>
+                                {room.post_title}
+                              </p>
                               {unreadRoomCount > 0 && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-red-600 text-white border border-red-400/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] shrink-0 animate-pulse">
-                                  {unreadRoomCount} NEW
+                                <span className="px-2 py-0.5 text-[9px] font-mono font-black rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white border border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.85)] shrink-0 animate-pulse flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                                  <span>{unreadRoomCount} NEW</span>
                                 </span>
                               )}
                             </div>
