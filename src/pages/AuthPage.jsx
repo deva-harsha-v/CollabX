@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon } from 'lucide-react';
-import { signUp, signIn } from '../lib/storage';
+import { ShieldCheck, ShieldAlert, User, Mail, Lock, Upload, ArrowRight, AlertCircle, Image as ImageIcon, X, KeyRound } from 'lucide-react';
+import { signUp, signIn, adminSignIn } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 
 const AuthPage = () => {
@@ -23,33 +23,56 @@ const AuthPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Admin Modal State
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminError('');
+    setIsAdminSubmitting(true);
+    const { data, error } = await adminSignIn(adminEmail, adminPassword);
+    setIsAdminSubmitting(false);
+
+    if (error) {
+      setAdminError(error.message);
+      return;
+    }
+
+    if (data) {
+      navigate('/admin');
+    }
+  };
+
   // Handle Profile Picture File Change
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('Profile picture must be under 5MB.');
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select a valid image file (PNG, JPG, JPEG).');
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      // NOTE: This base64 data URL will be replaced with a Supabase Storage bucket URL in production.
+    reader.onload = () => {
       setAvatarPreview(reader.result);
-      setErrorMsg('');
     };
     reader.readAsDataURL(file);
   };
 
-  // Handle Verification Document Change (Optional)
+  // Handle Verification Document Change
   const handleDocChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setDocName(file.name);
+
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onload = () => {
       setDocBase64(reader.result);
     };
     reader.readAsDataURL(file);
@@ -71,15 +94,11 @@ const AuthPage = () => {
         return;
       }
       if (!email.trim()) {
-        setErrorMsg('Please enter your official email address.');
-        return;
-      }
-      if (!password) {
-        setErrorMsg('Please enter a password.');
+        setErrorMsg('Please enter a valid email address.');
         return;
       }
       if (password.length < 6) {
-        setErrorMsg('Password must be at least 6 characters.');
+        setErrorMsg('Password must be at least 6 characters long.');
         return;
       }
       if (password !== confirmPassword) {
@@ -88,55 +107,56 @@ const AuthPage = () => {
       }
 
       setIsSubmitting(true);
-      const finalAvatar = avatarPreview || getInitialsAvatar(name);
 
-      const { data, error } = await signUp({
+      const { data: newUser, error } = await signUp({
         name,
         email,
         password,
-        avatar: finalAvatar,
-        verificationDoc: docBase64 || null,
+        avatar: avatarPreview || getInitialsAvatar(name),
+        verificationDocument: docBase64 ? { name: docName, base64: docBase64 } : null,
       });
 
       setIsSubmitting(false);
 
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(error.message || 'Registration failed. Please try again.');
         return;
       }
 
-      loginUser(data);
+      loginUser(newUser);
       navigate('/feed');
     } else {
-      // Sign In Flow
+      // Sign In
       if (!email.trim() || !password) {
-        setErrorMsg('Please enter both email and password.');
+        setErrorMsg('Please provide both email and password.');
         return;
       }
 
       setIsSubmitting(true);
-      const { data, error } = await signIn(email, password);
+
+      const { data: user, error } = await signIn(email, password);
+
       setIsSubmitting(false);
 
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(error.message || 'Invalid credentials.');
         return;
       }
 
-      loginUser(data);
+      loginUser(user);
       navigate('/feed');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1931] text-[#F6FAFD] flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden cyber-grid">
-      {/* Background glow orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-[#4A7FA7]/15 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#1A3D63]/25 rounded-full blur-[140px] pointer-events-none" />
+    <div className="relative min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-[#0A1931] cyber-grid overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#4A7FA7]/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#1A3D63]/25 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Top Brand Link */}
-      <Link to="/" className="flex items-center gap-3 mb-8 group z-10">
-        <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#4A7FA7] via-[#1A3D63] to-[#B3CFE5] p-[2px] shadow-lg shadow-[#4A7FA7]/25">
+      {/* Brand Header */}
+      <Link to="/" className="relative z-10 flex items-center gap-3 mb-8 group">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#4A7FA7] to-[#B3CFE5] p-[1.5px] shadow-lg shadow-[#4A7FA7]/20 group-hover:scale-105 transition-transform duration-300">
           <div className="w-full h-full bg-[#0A1931] rounded-[14px] flex items-center justify-center">
             <ShieldCheck className="w-6 h-6 text-[#B3CFE5] group-hover:rotate-12 transition-transform duration-300" />
           </div>
@@ -202,45 +222,44 @@ const AuthPage = () => {
         {/* Form Container */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Sign Up Avatar Upload Preview */}
+          {/* Avatar / Picture (Sign Up Only) */}
           {mode === 'signup' && (
-            <div className="flex flex-col items-center justify-center mb-5">
-              <div className="relative w-20 h-20 rounded-full border-2 border-[#4A7FA7]/60 bg-[#0A1931] flex items-center justify-center overflow-hidden shadow-inner group">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="relative w-14 h-14 rounded-full border border-[#4A7FA7]/40 bg-[#0A1931] overflow-hidden flex items-center justify-center shrink-0">
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                  <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-[#B3CFE5]/80 group-hover:text-[#F6FAFD] transition-colors">
-                    <User className="w-8 h-8" />
-                    <span className="text-[10px] font-mono mt-0.5">Photo</span>
-                  </div>
+                  <User className="w-6 h-6 text-[#B3CFE5]/60" />
                 )}
               </div>
-              
-              <label className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A1931]/80 border border-[#4A7FA7]/40 text-[#B3CFE5] text-xs font-medium hover:bg-[#4A7FA7]/30 cursor-pointer transition-colors">
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>{avatarPreview ? 'Change Photo' : 'Upload Profile Photo'}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
+              <div className="flex-1">
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0A1931] hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-xs font-medium text-[#B3CFE5] hover:text-[#F6FAFD] cursor-pointer transition-colors">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>{avatarPreview ? 'Change Photo' : 'Upload Avatar'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </label>
+                <p className="text-[10px] text-[#B3CFE5]/60 font-mono mt-1">Optional profile picture</p>
+              </div>
             </div>
           )}
 
-          {/* Full Name (Sign Up only) */}
+          {/* Full Name (Sign Up Only) */}
           {mode === 'signup' && (
             <div>
-              <label className="block text-xs font-semibold text-[#B3CFE5] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
                 Full Name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-[#B3CFE5]/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Priya Raman"
+                  placeholder="Dr. Jane Doe / John Smith"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-sm text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors"
@@ -249,17 +268,17 @@ const AuthPage = () => {
             </div>
           )}
 
-          {/* Email */}
+          {/* Email Address */}
           <div>
-            <label className="block text-xs font-semibold text-[#B3CFE5] uppercase tracking-wider mb-1.5">
-              Official Email
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+              Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[#B3CFE5]/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
               <input
                 type="email"
                 required
-                placeholder="name@institution.org"
+                placeholder="name@university.edu or organization.org"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-sm text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors"
@@ -269,15 +288,15 @@ const AuthPage = () => {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-[#B3CFE5] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#B3CFE5]/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-sm text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors"
@@ -285,18 +304,18 @@ const AuthPage = () => {
             </div>
           </div>
 
-          {/* Confirm Password (Sign Up only) */}
+          {/* Confirm Password (Sign Up Only) */}
           {mode === 'signup' && (
             <div>
-              <label className="block text-xs font-semibold text-[#B3CFE5] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#B3CFE5]/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[#0A1931]/80 border border-[#4A7FA7]/40 rounded-xl text-sm text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-[#B3CFE5] transition-colors"
@@ -333,7 +352,7 @@ const AuthPage = () => {
             </div>
           )}
 
-          {/* Submit Button (Red Pill Button - THE ONLY RED ELEMENT UNTOUCHED) */}
+          {/* Submit Button */}
           <div className="pt-3">
             <button
               type="submit"
@@ -346,6 +365,95 @@ const AuthPage = () => {
           </div>
         </form>
       </div>
+
+      {/* Discrete Bottom-Right Shield Icon Button for Admin Access */}
+      <button
+        type="button"
+        onClick={() => { setShowAdminModal(true); setAdminError(''); }}
+        title="Admin Supervisory Portal"
+        className="fixed bottom-5 right-5 z-40 p-3 rounded-full bg-[#1A3D63]/90 hover:bg-[#1A3D63] border border-[#4A7FA7]/40 text-[#B3CFE5] hover:text-red-400 shadow-2xl backdrop-blur-md transition-all hover:scale-110 group"
+      >
+        <ShieldAlert className="w-5 h-5 text-[#B3CFE5] group-hover:text-red-400" />
+      </button>
+
+      {/* Admin Sign In Modal */}
+      {showAdminModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md p-6 sm:p-8 bg-[#1A3D63]/95 border-2 border-red-500/50 rounded-3xl shadow-[0_0_50px_rgba(239,68,68,0.3)] text-[#F6FAFD]">
+            <button
+              onClick={() => setShowAdminModal(false)}
+              className="absolute top-6 right-6 p-2 text-[#B3CFE5] hover:text-[#F6FAFD] rounded-full bg-white/5 hover:bg-white/10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-red-400">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold font-['Outfit'] text-[#F6FAFD]">
+                  Admin Supervisory Portal
+                </h3>
+                <p className="text-xs text-red-300 font-mono">Restricted Management Access</p>
+              </div>
+            </div>
+
+            {adminError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{adminError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  Admin Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@collabx.org"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931] border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-red-400 transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#B3CFE5] mb-1.5">
+                  Admin Key / Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B3CFE5]/60" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••••••"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#0A1931] border border-[#4A7FA7]/40 rounded-xl text-xs text-[#F6FAFD] placeholder:text-[#B3CFE5]/40 focus:outline-none focus:border-red-400 transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isAdminSubmitting}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-red-800 border border-red-400/40 text-white font-bold text-xs transition-all shadow-lg hover:brightness-110 disabled:opacity-50"
+                >
+                  {isAdminSubmitting ? 'Authenticating Command...' : 'Enter Admin Supervisory Command'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

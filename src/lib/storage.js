@@ -1041,3 +1041,320 @@ export async function updatePostProgress(postId, percentage) {
   setLocal(LOCAL_POSTS, updated);
   return { data: { id: postId, progress: clamped }, error: null };
 }
+
+/**
+ * User Profile: Update Name, Phone, and Avatar
+ */
+export async function updateUserProfile(userId, { name, phone, avatar }) {
+  if (isSupabaseConfigured) {
+    try {
+      let avatarUrl = avatar;
+      if (avatar && avatar.startsWith('data:image')) {
+        const fileName = `${userId}_${Date.now()}.png`;
+        const blob = await (await fetch(avatar)).blob();
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('profile-pictures')
+          .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+
+        if (!uploadErr && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('profile-pictures')
+            .getPublicUrl(fileName);
+          avatarUrl = urlData.publicUrl;
+        }
+      }
+
+      const updatePayload = {};
+      if (name) updatePayload.name = name.trim();
+      if (phone !== undefined) updatePayload.phone = phone ? phone.trim() : null;
+      if (avatarUrl) updatePayload.avatar_url = avatarUrl;
+
+      const { data: updatedProfile, error: updateErr } = await supabase
+        .from('profiles')
+        .update(updatePayload)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (updateErr) return { data: null, error: updateErr };
+
+      return {
+        data: {
+          id: updatedProfile.id,
+          name: updatedProfile.name,
+          email: updatedProfile.email,
+          phone: updatedProfile.phone,
+          avatar: updatedProfile.avatar_url,
+          verification_uploaded: updatedProfile.verification_uploaded,
+          verification_document_url: updatedProfile.verification_document_url,
+        },
+        error: null,
+      };
+    } catch (err) {
+      return { data: null, error: { message: err.message } };
+    }
+  }
+
+  // Fallback Local Storage
+  const users = getLocal(LOCAL_USERS, []);
+  const session = getLocal(LOCAL_SESSION, {});
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx !== -1) {
+    if (name) users[idx].name = name.trim();
+    if (phone !== undefined) users[idx].phone = phone;
+    if (avatar) users[idx].avatar = avatar;
+    setLocal(LOCAL_USERS, users);
+  }
+
+  const updatedSession = {
+    ...session,
+    name: name ? name.trim() : session.name,
+    phone: phone !== undefined ? phone : session.phone,
+    avatar: avatar || session.avatar,
+  };
+  setLocal(LOCAL_SESSION, updatedSession);
+
+  return { data: updatedSession, error: null };
+}
+
+/**
+ * User Profile: Change Password (Verifies current password first)
+ */
+export async function changeUserPassword({ email, currentPassword, newPassword }) {
+  if (isSupabaseConfigured) {
+    try {
+      // 1. Verify current password by signing in
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+
+      if (verifyErr) {
+        return { data: null, error: { message: 'Current password is incorrect.' } };
+      }
+
+      // 2. Update to new password
+      const { data, error: updateErr } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateErr) {
+        return { data: null, error: updateErr };
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      return { data: null, error: { message: err.message } };
+    }
+  }
+
+  // Fallback Local Storage
+  const users = getLocal(LOCAL_USERS, []);
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+  if (!user || user.password !== currentPassword) {
+    return { data: null, error: { message: 'Current password is incorrect.' } };
+  }
+
+  user.password = newPassword;
+  setLocal(LOCAL_USERS, users);
+
+  const session = getLocal(LOCAL_SESSION, {});
+  if (session && session.email === email) {
+    session.password = newPassword;
+    setLocal(LOCAL_SESSION, session);
+  }
+
+  return { data: true, error: null };
+}
+
+/**
+ * ============================================================================
+ * ADMIN PORTAL SYSTEM
+ * ============================================================================
+ */
+export const ADMIN_CREDENTIALS = {
+  email: 'admin@collabx.org',
+  password: 'AdminCollabX2026!Secure',
+};
+
+const LOCAL_ADMIN_SESSION = 'collabx_admin_session';
+
+export async function adminSignIn(email, password) {
+  if (
+    email.toLowerCase().trim() === ADMIN_CREDENTIALS.email.toLowerCase() &&
+    password === ADMIN_CREDENTIALS.password
+  ) {
+    const adminSession = {
+      email: ADMIN_CREDENTIALS.email,
+      role: 'admin',
+      name: 'CollabX Administrator',
+      signedInAt: new Date().toISOString(),
+    };
+    localStorage.setItem(LOCAL_ADMIN_SESSION, JSON.stringify(adminSession));
+    return { data: adminSession, error: null };
+  }
+  return { data: null, error: { message: 'Invalid Admin Credentials.' } };
+}
+
+export function getAdminSession() {
+  try {
+    const val = localStorage.getItem(LOCAL_ADMIN_SESSION);
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function adminSignOut() {
+  localStorage.removeItem(LOCAL_ADMIN_SESSION);
+  return { data: true, error: null };
+}
+
+/**
+ * Admin: Fetch all posts ever created (live, completed, deleted)
+ */
+export async function getAllAdminPosts() {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*, author:author_id(name, email, avatar_url, phone)')
+        .order('created_at', { ascending: false });
+
+      return { data: data || [], error };
+    } catch (err) {
+      return { data: [], error: { message: err.message } };
+    }
+  }
+
+  const posts = getLocal(LOCAL_POSTS, []);
+  return { data: posts, error: null };
+}
+
+/**
+ * Admin: Fetch all registered users / profiles
+ */
+export async function getAllAdminUsers() {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      return { data: data || [], error };
+    } catch (err) {
+      return { data: [], error: { message: err.message } };
+    }
+  }
+
+  const users = getLocal(LOCAL_USERS, []);
+  return { data: users, error: null };
+}
+
+/**
+ * Admin: Fetch all chat rooms with message counts
+ */
+export async function getAllAdminChatRooms() {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: rooms, error: roomErr } = await supabase
+        .from('chat_rooms')
+        .select('*, posts:post_id(id, title, author_id, status)')
+        .order('created_at', { ascending: false });
+
+      if (roomErr) return { data: [], error: roomErr };
+
+      // Fetch participants and message counts for each room
+      const results = await Promise.all((rooms || []).map(async (r) => {
+        const { count: msgCount } = await supabase
+          .from('chat_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('chat_room_id', r.id);
+
+        const { data: participants } = await supabase
+          .from('chat_participants')
+          .select('user_id, profiles:user_id(name, email, avatar_url)')
+          .eq('chat_room_id', r.id);
+
+        return {
+          ...r,
+          message_count: msgCount || 0,
+          participants: participants || [],
+        };
+      }));
+
+      return { data: results, error: null };
+    } catch (err) {
+      return { data: [], error: { message: err.message } };
+    }
+  }
+
+  const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
+  const msgs = getLocal(LOCAL_CHAT_MSGS, []);
+  const posts = getLocal(LOCAL_POSTS, []);
+
+  const results = rooms.map(r => ({
+    ...r,
+    posts: posts.find(p => p.id === r.post_id),
+    message_count: msgs.filter(m => m.chat_room_id === r.id).length,
+  }));
+
+  return { data: results, error: null };
+}
+
+/**
+ * Admin: Delete a post with a mandatory reason, and notify the author
+ */
+export async function adminDeletePost(postId, authorId, postTitle, reason) {
+  if (isSupabaseConfigured) {
+    try {
+      // 1. Update post status to deleted
+      const { error: deleteErr } = await supabase
+        .from('posts')
+        .update({ status: 'deleted' })
+        .eq('id', postId);
+
+      if (deleteErr) return { data: null, error: deleteErr };
+
+      // 2. Dispatch notification to author
+      if (authorId) {
+        await supabase.from('notifications').insert([{
+          user_id: authorId,
+          type: 'admin_post_removed',
+          payload: {
+            post_id: postId,
+            post_title: postTitle,
+            message: `Your challenge "${postTitle}" was removed by the administrator. Reason: ${reason}`,
+            reason: reason,
+          },
+          read: false,
+        }]);
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      return { data: null, error: { message: err.message } };
+    }
+  }
+
+  // Fallback
+  const posts = getLocal(LOCAL_POSTS, []);
+  const updated = posts.map(p => p.id === postId ? { ...p, status: 'deleted' } : p);
+  setLocal(LOCAL_POSTS, updated);
+
+  if (authorId) {
+    await addNotification(authorId, {
+      message: `Your challenge "${postTitle}" was removed by the administrator. Reason: ${reason}`,
+      type: 'admin_post_removed',
+      payload: {
+        post_id: postId,
+        post_title: postTitle,
+        reason: reason,
+      },
+    });
+  }
+
+  return { data: true, error: null };
+}
+

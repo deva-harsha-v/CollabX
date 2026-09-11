@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Bell, LogOut, FileText, ChevronDown, Sparkles, Lightbulb, Menu, X as CloseIcon, MessageSquare } from 'lucide-react';
+import { 
+  Bell, 
+  Sparkles, 
+  Menu, 
+  X, 
+  ArrowRight, 
+  FileText, 
+  Lightbulb, 
+  LogOut, 
+  Check, 
+  ChevronDown,
+  MessageSquare,
+  User
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ContactRequestReviewModal from './ContactRequestReviewModal';
 import PostDetailModal from './PostDetailModal';
@@ -13,34 +26,32 @@ const Navbar = () => {
     logoutUser, 
     notifications, 
     unreadCount, 
-    markNotificationsAsRead,
-    setFeedFilter,
-    refreshPosts
+    setFeedFilter, 
+    markNotificationsAsRead 
   } = useApp();
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
-  const [showMobileNav, setShowMobileNav] = useState(false);
 
-  // Notification Modals
-  const [selectedNotif, setSelectedNotif] = useState(null);
+  // Review & Detail Modal Interception
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [detailModalPostId, setDetailModalPostId] = useState(null);
+  const [selectedNotif, setSelectedNotif] = useState(null);
 
   const profileRef = useRef(null);
   const notifRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 40) {
+      if (window.scrollY > 20) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
     };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -71,20 +82,19 @@ const Navbar = () => {
     setShowNotifMenu(false);
   };
 
-  const handleMyPostsClick = () => {
-    setFeedFilter('my_posts');
+  const handleMyAccountClick = () => {
     setShowProfileMenu(false);
-    if (location.pathname !== '/feed') {
-      navigate('/feed');
-    }
+    navigate('/account');
+  };
+
+  const handleMyPostsClick = () => {
+    setShowProfileMenu(false);
+    navigate('/my-posts');
   };
 
   const handleMyIdeasClick = () => {
-    setFeedFilter('my_ideas');
     setShowProfileMenu(false);
-    if (location.pathname !== '/feed') {
-      navigate('/feed');
-    }
+    navigate('/my-ideas');
   };
 
   const handleNotifClick = (n) => {
@@ -290,6 +300,15 @@ const Navbar = () => {
                       <p className="font-bold text-[#F6FAFD] truncate">{currentUser.name}</p>
                       <p className="text-[10px] text-[#B3CFE5]/80 font-mono truncate">{currentUser.email}</p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleMyAccountClick}
+                      className="w-full px-3.5 py-2 text-left text-[#B3CFE5] hover:text-[#F6FAFD] hover:bg-[#4A7FA7]/30 flex items-center gap-2 transition-colors font-medium"
+                    >
+                      <User className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                      <span>My Account</span>
+                    </button>
 
                     <button
                       type="button"
