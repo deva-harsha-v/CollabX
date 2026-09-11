@@ -508,34 +508,57 @@ const FeedPage = () => {
       {/* Account Setup Required Modal (If emergency post already exhausted and password not set) */}
       {showSetupRequiredModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md p-6 sm:p-8 bg-[#0b2240]/95 border border-amber-500/40 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.25)] text-[#f0f9ff] backdrop-blur-2xl text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
-              <Lock className="w-7 h-7" />
+          <div className="relative w-full max-w-lg p-6 sm:p-8 bg-[#0b2240]/95 border-2 border-amber-500/50 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.3)] text-[#f0f9ff] backdrop-blur-2xl space-y-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">
+                  Emergency Post Limit (1) Reached
+                </h3>
+                <p className="text-xs text-amber-300 font-mono">
+                  Setup Account Details to Post Regular Challenges
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">
-              Account Details & Password Required
-            </h3>
+
             <p className="text-xs text-[#38bdf8] leading-relaxed">
-              You have already posted your 1 allowed emergency crisis challenge.
-              To post regular challenges, please complete your profile details and set up your account password in Account Settings.
+              Your emergency fast-track registration included <strong>exactly 1 emergency crisis challenge</strong>, which is currently live and pinned to the feed.
             </p>
-            <div className="pt-2 flex flex-col gap-2.5">
+
+            <div className="p-3.5 rounded-2xl bg-[#06142e]/90 border border-amber-500/30 text-xs text-amber-100/90 space-y-2 font-mono">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">✓ 1st Challenge:</span>
+                <span>Emergency post completed & pinned to feed.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-amber-400 font-bold">ℹ 2nd Challenge:</span>
+                <span>Must be posted as a standard regular challenge.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold">🔒 Action Needed:</span>
+                <span>Set your password in Account Settings to unlock regular posting.</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setShowSetupRequiredModal(false);
                   navigate('/account');
                 }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg transition-all"
+                className="w-full sm:flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg transition-all"
               >
                 Go to Account Settings
               </button>
               <button
                 type="button"
                 onClick={() => setShowSetupRequiredModal(false)}
-                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#f0f9ff]/70 transition-colors"
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#f0f9ff]/70 transition-colors"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

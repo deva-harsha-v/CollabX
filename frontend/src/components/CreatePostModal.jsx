@@ -22,6 +22,8 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     !currentUser?.has_password
   );
 
+  const isEmergencyUser = isEmergencyFirstPost;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -201,23 +203,35 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
         {/* Setup Required Notice (If emergency post is already exhausted and password not set) */}
         {isEmergencyNeedsSetup && (
-          <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs shadow-[0_0_25px_rgba(245,158,11,0.2)] flex items-start gap-3">
-            <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <h4 className="font-bold text-sm text-amber-100 font-['Outfit']">🔒 Account Details & Password Setup Required</h4>
-              <p className="leading-relaxed text-amber-200/90">
-                You have already posted your 1 allowed emergency crisis challenge. To post regular challenges on CollabX, please complete your profile details and set up your account password.
+          <div className="mb-5 p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-200 text-xs shadow-[0_0_30px_rgba(245,158,11,0.25)] flex items-start gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div className="space-y-2 flex-1">
+              <h4 className="font-bold text-sm text-amber-100 font-['Outfit']">
+                ⚠️ Emergency Limit Reached: Account Setup Required for Next Posts
+              </h4>
+              <p className="leading-relaxed text-amber-200/90 text-xs">
+                Your emergency crisis registration allows <strong>exactly 1 emergency post</strong>, which has already been submitted and pinned to the live feed.
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  handleReset();
-                  navigate('/account');
-                }}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs tracking-wide shadow-md transition-colors mt-1"
-              >
-                <span>Go to Account Settings</span>
-              </button>
+              <div className="p-3 rounded-xl bg-black/40 border border-amber-500/30 text-[11px] text-amber-100/90 space-y-1 font-mono">
+                <p>• <strong>1st Post (Emergency)</strong>: Completed & pinned to feed.</p>
+                <p>• <strong>2nd Post & Next</strong>: Must be a standard normal post.</p>
+                <p>• <strong>Action Needed</strong>: You must set your password and phone in Account Settings before posting again.</p>
+              </div>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleReset();
+                    navigate('/account');
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-md transition-all"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Set Password in Account Settings</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
