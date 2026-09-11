@@ -306,19 +306,30 @@ export async function createPost(postData) {
 export async function getAllPosts() {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase.rpc('get_public_posts');
-      if (!error && data && data.length > 0) {
-        return { data: data.map(p => ({ ...p, progress: p.progress ?? 0 })), error: null };
-      }
-      // Fallback direct query if RPC doesn't return or error
+      // Direct table query selects live progress column
       const { data: directPosts, error: directErr } = await supabase
         .from('posts')
         .select('*')
         .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
-      if (directErr) return { data: [], error: directErr };
-      return { data: (directPosts || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error: null };
+      if (!directErr && directPosts) {
+        return { 
+          data: directPosts.map(p => ({ 
+            ...p, 
+            progress: typeof p.progress === 'number' ? p.progress : 0,
+            phone_number: null,
+            latitude: null,
+            longitude: null,
+          })), 
+          error: null 
+        };
+      }
+
+      // Fallback RPC if direct query fails
+      const { data, error } = await supabase.rpc('get_public_posts');
+      if (error) return { data: [], error };
+      return { data: (data || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: null };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -340,8 +351,7 @@ export async function getAllPosts() {
       media_url: p.media,
       status: p.status,
       created_at: p.createdAt,
-      progress: p.progress ?? 0,
-      // Stripped sensitive fields for public feed
+      progress: typeof p.progress === 'number' ? p.progress : 0,
       phone_number: null,
       latitude: null,
       longitude: null,
@@ -356,11 +366,61 @@ export async function getAllPosts() {
 export async function getPostDetails(postId) {
   if (isSupabaseConfigured) {
     try {
+      const { data: postRow, error: postErr } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .maybeSingle();
+
+      if (postRow) {
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData?.user?.id;
+        const isAuthor = userId && postRow.author_id === userId;
+
+        let contactStatus = 'none';
+        if (userId && !isAuthor) {
+          const { data: contact } = await supabase
+            .from('contact_requests')
+            .select('status')
+            .eq('post_id', postId)
+            .eq('solver_id', userId)
+            .maybeSingle();
+          contactStatus = contact?.status || 'none';
+        }
+
+        const isAccepted = isAuthor || contactStatus === 'accepted';
+
+        return {
+          data: {
+            id: postRow.id,
+            author_id: postRow.author_id,
+            author_name: postRow.author_name,
+            author_avatar: postRow.author_avatar,
+            author_email: isAccepted ? postRow.author_email : null,
+            title: postRow.title,
+            description: postRow.description,
+            organization: postRow.organization,
+            skills: postRow.skills,
+            address: postRow.address,
+            phone_number: isAccepted ? postRow.phone_number : null,
+            latitude: isAccepted ? postRow.latitude : null,
+            longitude: isAccepted ? postRow.longitude : null,
+            media_url: postRow.media_url,
+            status: postRow.status,
+            progress: typeof postRow.progress === 'number' ? postRow.progress : 0,
+            created_at: postRow.created_at,
+            is_authorized: isAccepted,
+            user_contact_status: isAuthor ? 'author' : contactStatus,
+          },
+          error: null,
+        };
+      }
+
       const { data, error } = await supabase.rpc('get_post_details', { p_post_id: postId });
       if (error) return { data: null, error };
       const detail = data?.[0] || null;
       if (detail) {
-        return { data: { ...detail, progress: detail.progress ?? 0 }, error: null };
+        return { data: { ...detail, progress: typeof detail.progress === 'number' ? detail.progress : 0 }, error: null };
       }
       return { data: null, error: null };
     } catch (err) {
@@ -396,7 +456,7 @@ export async function getPostDetails(postId) {
       longitude: isAccepted ? post.coordinates?.longitude : null,
       media_url: post.media,
       status: post.status,
-      progress: post.progress ?? 0,
+      progress: typeof post.progress === 'number' ? post.progress : 0,
       created_at: post.createdAt,
       is_authorized: isAccepted,
       user_contact_status: isAuthor ? 'author' : (userContact?.status || 'none'),
@@ -418,7 +478,7 @@ export async function getPostsByUser(userId) {
         .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
-      return { data: (data || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error };
+      return { data: (data || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -427,7 +487,7 @@ export async function getPostsByUser(userId) {
   const posts = getLocal(LOCAL_POSTS, []);
   const userPosts = posts
     .filter(p => p.authorId === userId && p.status !== 'deleted')
-    .map(p => ({ ...p, progress: p.progress ?? 0 }));
+    .map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 }));
   return { data: userPosts, error: null };
 }
 
@@ -437,8 +497,32 @@ export async function getPostsByUser(userId) {
 export async function getMyIdeas() {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase.rpc('get_my_ideas');
-      return { data: (data || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error };
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) return { data: [], error: null };
+
+      // Get accepted contact requests
+      const { data: contacts, error: contactErr } = await supabase
+        .from('contact_requests')
+        .select('post_id')
+        .eq('solver_id', authData.user.id)
+        .eq('status', 'accepted');
+
+      if (!contactErr && contacts && contacts.length > 0) {
+        const postIds = contacts.map(c => c.post_id);
+        const { data: posts, error: postErr } = await supabase
+          .from('posts')
+          .select('*')
+          .in('id', postIds)
+          .neq('status', 'deleted')
+          .order('created_at', { ascending: false });
+
+        if (!postErr && posts) {
+          return { data: posts.map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: null };
+        }
+      }
+
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_ideas');
+      return { data: (rpcData || []).map(p => ({ ...p, progress: typeof p.progress === 'number' ? p.progress : 0 })), error: rpcErr };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }

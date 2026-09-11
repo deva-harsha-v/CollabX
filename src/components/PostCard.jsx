@@ -31,6 +31,17 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
     setLocalProgress(post?.progress ?? 0);
   }, [post?.progress]);
 
+  const handleProgressChange = (e) => {
+    const val = parseInt(e.target.value, 10);
+    setLocalProgress(val);
+    if (onProgressChange) onProgressChange(post.id, val);
+  };
+
+  const handlePresetClick = (preset) => {
+    setLocalProgress(preset);
+    if (onProgressChange) onProgressChange(post.id, preset);
+  };
+
   const getProgressStage = (pct) => {
     if (pct >= 100) return { label: 'Resolved & Completed', color: 'text-emerald-300 border-emerald-500/40 bg-emerald-950/60' };
     if (pct >= 75) return { label: 'Testing & Review', color: 'text-[#B3CFE5] border-[#4A7FA7]/60 bg-[#0A1931]/80' };
@@ -204,10 +215,7 @@ const PostCard = ({ post, isAuthorView, onDelete, onComplete, onProgressChange }
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => {
-                      setLocalProgress(preset);
-                      if (onProgressChange) onProgressChange(post.id, preset);
-                    }}
+                    onClick={() => handlePresetClick(preset)}
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border transition-all ${
                       localProgress === preset
                         ? 'bg-[#4A7FA7] text-[#F6FAFD] border-[#B3CFE5]'

@@ -65,6 +65,7 @@ const FeedPage = () => {
   };
 
   const handleProgressUpdate = async (postId, percentage) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, progress: percentage } : p));
     await updatePostProgress(postId, percentage);
   };
 
