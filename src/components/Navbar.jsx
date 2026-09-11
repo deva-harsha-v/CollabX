@@ -27,7 +27,8 @@ const Navbar = () => {
     notifications, 
     unreadCount, 
     setFeedFilter, 
-    markNotificationsAsRead 
+    markNotificationsAsRead,
+    refreshPosts
   } = useApp();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -367,7 +368,7 @@ const Navbar = () => {
             className="md:hidden p-2 rounded-xl bg-[#0A1931]/80 hover:bg-[#1A3D63] border border-[#4A7FA7]/30 text-[#B3CFE5] hover:text-[#F6FAFD] transition-colors"
             aria-label="Toggle mobile menu"
           >
-            {showMobileNav ? <CloseIcon className="w-5 h-5 text-[#B3CFE5]" /> : <Menu className="w-5 h-5 text-[#B3CFE5]" />}
+            {showMobileNav ? <X className="w-5 h-5 text-[#B3CFE5]" /> : <Menu className="w-5 h-5 text-[#B3CFE5]" />}
           </button>
         </div>
 
