@@ -5,7 +5,7 @@ import { getChatRoomForPost, getChatMessages, sendChatMessage } from '../lib/sto
 import { useApp } from '../context/AppContext';
 
 const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
-  const { currentUser } = useApp();
+  const { currentUser, markChatRoomRead } = useApp();
 
   const [roomId, setRoomId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -32,6 +32,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
 
     if (room) {
       setRoomId(room.id);
+      markChatRoomRead(room.id);
       const { data: msgs, error: msgErr } = await getChatMessages(room.id);
       if (msgErr) {
         setChatError(`Error loading chat history: ${msgErr.message || msgErr}`);

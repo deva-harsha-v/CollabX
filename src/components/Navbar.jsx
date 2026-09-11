@@ -26,6 +26,7 @@ const Navbar = () => {
     logoutUser, 
     notifications, 
     unreadCount, 
+    unreadChatCount,
     setFeedFilter, 
     markNotificationsAsRead,
     refreshPosts
@@ -181,13 +182,20 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/messages"
-                  className={`font-semibold flex items-center gap-1.5 transition-colors pb-0.5 ${
+                  className={`font-semibold flex items-center gap-1.5 transition-colors pb-0.5 relative ${
                     location.pathname === '/messages'
                       ? 'text-[#F6FAFD] border-b border-[#4A7FA7]'
                       : 'text-[#B3CFE5] hover:text-[#F6FAFD]'
                   }`}
                 >
-                  <MessageSquare className="w-4 h-4 text-[#B3CFE5]" /> Messages
+                  <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+                  <span>Messages</span>
+                  {unreadChatCount > 0 && (
+                    <span className="relative flex h-2.5 w-2.5 ml-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#B3CFE5] opacity-80"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5]"></span>
+                    </span>
+                  )}
                 </Link>
               </>
             ) : (
@@ -202,18 +210,6 @@ const Navbar = () => {
           {/* Right Section: Auth State dependent UI */}
           {currentUser ? (
             <div className="flex items-center gap-2.5 sm:gap-3">
-
-              {/* Messages Icon Button with Unread Badge */}
-              <Link
-                to="/messages"
-                className="relative p-2 rounded-xl bg-[#0A1931]/80 hover:bg-[#1A3D63] border border-[#4A7FA7]/30 text-[#B3CFE5] hover:text-[#F6FAFD] transition-colors"
-                aria-label="Messages"
-              >
-                <MessageSquare className="w-5 h-5 text-[#B3CFE5]" />
-                {notifications.filter(n => !n.read && n.type === 'chat_message').length > 0 && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
-                )}
-              </Link>
 
               {/* Notification Bell Button */}
               <div className="relative" ref={notifRef}>
@@ -314,10 +310,17 @@ const Navbar = () => {
                     <button
                       type="button"
                       onClick={() => { setShowProfileMenu(false); navigate('/messages'); }}
-                      className="w-full px-3.5 py-2 text-left text-[#B3CFE5] hover:text-[#F6FAFD] hover:bg-[#4A7FA7]/30 flex items-center gap-2 transition-colors font-medium"
+                      className="w-full px-3.5 py-2 text-left text-[#B3CFE5] hover:text-[#F6FAFD] hover:bg-[#4A7FA7]/30 flex items-center justify-between transition-colors font-medium"
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#B3CFE5]" />
-                      <span>Messages</span>
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#B3CFE5]" />
+                        <span>Messages</span>
+                      </div>
+                      {unreadChatCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-[#4A7FA7] text-[#F6FAFD] border border-[#B3CFE5]/60 shadow-[0_0_6px_#B3CFE5]">
+                          {unreadChatCount}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -387,9 +390,17 @@ const Navbar = () => {
                 <Link
                   to="/messages"
                   onClick={() => setShowMobileNav(false)}
-                  className="py-2 px-3 rounded-lg text-[#F6FAFD] font-semibold bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center gap-2"
+                  className="py-2 px-3 rounded-lg text-[#F6FAFD] font-semibold bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-between"
                 >
-                  <MessageSquare className="w-4 h-4 text-[#B3CFE5]" /> Messages
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+                    <span>Messages</span>
+                  </div>
+                  {unreadChatCount > 0 && (
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#4A7FA7] text-[#F6FAFD] border border-[#B3CFE5]/60">
+                      {unreadChatCount} NEW
+                    </span>
+                  )}
                 </Link>
               </>
             ) : (

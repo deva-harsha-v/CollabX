@@ -5,6 +5,7 @@ import {
   getAllPosts, 
   getNotifications, 
   markAllNotificationsRead,
+  markChatRoomNotificationsRead,
   createPost as apiCreatePost,
   getPostsByUser,
   getMyIdeas
@@ -64,12 +65,12 @@ export const AppProvider = ({ children }) => {
     if (currentUser?.id) {
       refreshNotifications(currentUser.id);
 
-      // Polling interval every 8 seconds for notifications
+      // Polling interval every 4 seconds for notifications & chat alerts
       const interval = setInterval(() => {
         refreshNotifications(currentUser.id);
-      }, 8000);
+      }, 4000);
 
-      // Supabase Realtime subscription on notifications table
+      // Supabase Realtime subscription on notifications table (both INSERT and UPDATE)
       let channel;
       if (isSupabaseConfigured) {
         channel = supabase
@@ -85,6 +86,21 @@ export const AppProvider = ({ children }) => {
             (payload) => {
               const newNotif = payload.new;
               setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${currentUser.id}`,
+            },
+            (payload) => {
+              const updatedNotif = payload.new;
+              setNotifications((prev) =>
+                prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
+              );
             }
           )
           .subscribe();
@@ -128,6 +144,23 @@ export const AppProvider = ({ children }) => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+  const markChatRoomRead = useCallback(async (roomId) => {
+    if (!roomId) return;
+    setNotifications(prev =>
+      prev.map(n => {
+        if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId)) {
+          return { ...n, read: true };
+        }
+        return n;
+      })
+    );
+    if (currentUser?.id) {
+      await markChatRoomNotificationsRead(roomId, currentUser.id);
+    }
+  }, [currentUser]);
+
+  const unreadChatCount = notifications.filter(n => !n.read && n.type === 'chat_message').length;
+  const unreadGeneralCount = notifications.filter(n => !n.read && n.type !== 'chat_message').length;
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -139,13 +172,17 @@ export const AppProvider = ({ children }) => {
         posts,
         notifications,
         unreadCount,
+        unreadChatCount,
+        unreadGeneralCount,
         feedFilter,
         setFeedFilter,
         loginUser,
         logoutUser,
         refreshPosts,
+        refreshNotifications,
         addNewPost,
         markNotificationsAsRead,
+        markChatRoomRead,
       }}
     >
       {children}

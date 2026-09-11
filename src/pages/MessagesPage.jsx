@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, ChevronRight, Send, Paperclip, FileText, X, ArrowLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useApp } from '../context/AppContext';
@@ -253,7 +253,7 @@ const ChatPanel = ({ room, currentUser, onBack }) => {
 };
 
 const MessagesPage = () => {
-  const { currentUser } = useApp();
+  const { currentUser, notifications, markChatRoomRead, refreshNotifications } = useApp();
   const [rooms, setRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -265,16 +265,26 @@ const MessagesPage = () => {
     const loaded = data || [];
     setRooms(loaded);
     setLoadingRooms(false);
-    if (loaded.length > 0 && !selectedRoom) setSelectedRoom(loaded[0]);
-  }, [selectedRoom]);
+    if (loaded.length > 0 && !selectedRoom) {
+      setSelectedRoom(loaded[0]);
+      markChatRoomRead(loaded[0].room_id);
+    }
+  }, [selectedRoom, markChatRoomRead]);
 
   useEffect(() => {
     loadRooms();
   }, [loadRooms]);
 
+  useEffect(() => {
+    if (selectedRoom?.room_id) {
+      markChatRoomRead(selectedRoom.room_id);
+    }
+  }, [selectedRoom, markChatRoomRead]);
+
   const handleSelectRoom = (room) => {
     setSelectedRoom(room);
     setShowChat(true);
+    markChatRoomRead(room.room_id);
   };
 
   return (
@@ -306,10 +316,15 @@ const MessagesPage = () => {
                 (showChat ? 'hidden md:flex' : 'flex')
               }
             >
-              <div className="px-4 py-3 border-b border-[#4A7FA7]/30 shrink-0">
+              <div className="px-4 py-3 border-b border-[#4A7FA7]/30 shrink-0 flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-[#B3CFE5] uppercase tracking-wider">
                   Active Rooms ({rooms.length})
                 </span>
+                {notifications.filter(n => !n.read && n.type === 'chat_message').length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#4A7FA7] text-[#F6FAFD] text-[10px] font-mono font-bold animate-pulse">
+                    {notifications.filter(n => !n.read && n.type === 'chat_message').length} unread
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto">
@@ -329,6 +344,13 @@ const MessagesPage = () => {
                 ) : (
                   rooms.map((room) => {
                     const isActive = selectedRoom?.room_id === room.room_id;
+                    const unreadRoomCount = notifications.filter(
+                      (n) =>
+                        !n.read &&
+                        n.type === 'chat_message' &&
+                        (n.payload?.room_id === room.room_id || n.payload?.roomId === room.room_id)
+                    ).length;
+
                     return (
                       <button
                         key={room.room_id}
@@ -341,11 +363,24 @@ const MessagesPage = () => {
                             : 'hover:bg-[#1A3D63]/60 border-l-2 border-l-transparent')
                         }
                       >
-                        <div className="w-9 h-9 rounded-xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center shrink-0">
+                        <div className="relative w-9 h-9 rounded-xl bg-[#4A7FA7]/20 border border-[#4A7FA7]/40 flex items-center justify-center shrink-0">
                           <MessageSquare className="w-4 h-4 text-[#B3CFE5]" />
+                          {unreadRoomCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#B3CFE5] opacity-90" />
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5]" />
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#F6FAFD] truncate">{room.post_title}</p>
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-semibold text-[#F6FAFD] truncate">{room.post_title}</p>
+                            {unreadRoomCount > 0 && (
+                              <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-[#4A7FA7] text-[#F6FAFD] border border-[#B3CFE5]/60 shadow-[0_0_6px_#B3CFE5] shrink-0 animate-pulse">
+                                {unreadRoomCount} NEW
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-mono text-[#B3CFE5]/60 mt-0.5">
                             {new Date(room.created_at).toLocaleDateString(undefined, {
                               month: 'short',

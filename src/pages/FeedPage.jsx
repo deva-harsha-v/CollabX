@@ -142,10 +142,10 @@ const FeedPage = () => {
               <div key={post.id} className="relative group">
                 <PostCard
                   post={post}
-                  isAuthorView={isMyPosts}
+                  isAuthorView={isMyPosts || (currentUser?.id && currentUser.id === (post.author_id || post.authorId))}
                   onDelete={handleDeletePost}
                   onComplete={handleCompletePost}
-                  onProgressChange={isMyPosts ? handleProgressUpdate : undefined}
+                  onProgressChange={handleProgressUpdate}
                 />
 
                 {/* Chat Room Launcher Button in My Posts / My Ideas */}

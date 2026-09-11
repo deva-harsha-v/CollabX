@@ -238,6 +238,33 @@ const PostDetailModal = ({ postId, isOpen, onClose }) => {
                 </div>
               )}
 
+              {/* Glowing Resolution Progress Bar in Detail Modal */}
+              <div className="p-4 rounded-2xl bg-[#0A1931]/80 border border-[#4A7FA7]/40 shadow-lg">
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#B3CFE5] shadow-[0_0_8px_#B3CFE5] animate-pulse" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#F6FAFD]">
+                      Challenge Resolution Progress
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full border border-[#4A7FA7]/60 bg-[#1A3D63] text-[10px] font-mono text-[#B3CFE5]">
+                      {(post.progress ?? 0) >= 100 ? 'Resolved & Completed' : (post.progress ?? 0) >= 75 ? 'Testing & Review' : (post.progress ?? 0) >= 50 ? 'Solution Underway' : (post.progress ?? 0) >= 25 ? 'Active Collaboration' : 'Open for Collaboration'}
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#1A3D63] border border-[#4A7FA7] text-[#B3CFE5] text-xs font-mono font-black shadow-[0_0_10px_rgba(179,207,229,0.3)]">
+                    {post.progress ?? 0}%
+                  </span>
+                </div>
+                <div className="relative w-full h-3 rounded-full bg-[#0A1931] border border-[#4A7FA7]/50 p-[1.5px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#1A3D63] via-[#4A7FA7] to-[#B3CFE5] transition-all duration-500 relative"
+                    style={{
+                      width: `${Math.max(post.progress ?? 0, 2)}%`,
+                      boxShadow: (post.progress ?? 0) > 0 ? '0 0 14px rgba(179, 207, 229, 0.9), 0 0 24px rgba(74, 127, 167, 0.7)' : 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
               {/* Title */}
               <h2 className="text-2xl sm:text-3xl font-extrabold font-['Outfit'] text-[#F6FAFD]">
                 {post.title}

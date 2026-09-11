@@ -307,8 +307,18 @@ export async function getAllPosts() {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase.rpc('get_public_posts');
-      if (error) return { data: [], error };
-      return { data: data || [], error: null };
+      if (!error && data && data.length > 0) {
+        return { data: data.map(p => ({ ...p, progress: p.progress ?? 0 })), error: null };
+      }
+      // Fallback direct query if RPC doesn't return or error
+      const { data: directPosts, error: directErr } = await supabase
+        .from('posts')
+        .select('*')
+        .neq('status', 'deleted')
+        .order('created_at', { ascending: false });
+
+      if (directErr) return { data: [], error: directErr };
+      return { data: (directPosts || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error: null };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -317,7 +327,7 @@ export async function getAllPosts() {
   // Fallback: exclude deleted & completed posts, strip sensitive phone/coordinates
   const posts = getLocal(LOCAL_POSTS, []);
   const publicPosts = posts
-    .filter(p => p.status === 'live')
+    .filter(p => p.status === 'live' || p.status === 'completed')
     .map(p => ({
       id: p.id,
       author_id: p.authorId,
@@ -330,6 +340,7 @@ export async function getAllPosts() {
       media_url: p.media,
       status: p.status,
       created_at: p.createdAt,
+      progress: p.progress ?? 0,
       // Stripped sensitive fields for public feed
       phone_number: null,
       latitude: null,
@@ -347,7 +358,11 @@ export async function getPostDetails(postId) {
     try {
       const { data, error } = await supabase.rpc('get_post_details', { p_post_id: postId });
       if (error) return { data: null, error };
-      return { data: data?.[0] || null, error: null };
+      const detail = data?.[0] || null;
+      if (detail) {
+        return { data: { ...detail, progress: detail.progress ?? 0 }, error: null };
+      }
+      return { data: null, error: null };
     } catch (err) {
       return { data: null, error: { message: err.message } };
     }
@@ -381,6 +396,7 @@ export async function getPostDetails(postId) {
       longitude: isAccepted ? post.coordinates?.longitude : null,
       media_url: post.media,
       status: post.status,
+      progress: post.progress ?? 0,
       created_at: post.createdAt,
       is_authorized: isAccepted,
       user_contact_status: isAuthor ? 'author' : (userContact?.status || 'none'),
@@ -402,14 +418,16 @@ export async function getPostsByUser(userId) {
         .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
-      return { data: data || [], error };
+      return { data: (data || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
   }
 
   const posts = getLocal(LOCAL_POSTS, []);
-  const userPosts = posts.filter(p => p.authorId === userId && p.status !== 'deleted');
+  const userPosts = posts
+    .filter(p => p.authorId === userId && p.status !== 'deleted')
+    .map(p => ({ ...p, progress: p.progress ?? 0 }));
   return { data: userPosts, error: null };
 }
 
@@ -420,7 +438,7 @@ export async function getMyIdeas() {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase.rpc('get_my_ideas');
-      return { data: data || [], error };
+      return { data: (data || []).map(p => ({ ...p, progress: p.progress ?? 0 })), error };
     } catch (err) {
       return { data: [], error: { message: err.message } };
     }
@@ -450,6 +468,7 @@ export async function getMyIdeas() {
       longitude: p.coordinates?.longitude,
       media_url: p.media,
       status: p.status,
+      progress: p.progress ?? 0,
       created_at: p.createdAt,
     }));
 
@@ -932,13 +951,60 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         .select('*, profiles:sender_id(name, avatar_url)')
         .single();
 
-      return { data: newMsg, error: msgErr };
+      if (msgErr) return { data: null, error: msgErr };
+
+      // Dispatch in-app notifications to other participants in this chat room
+      try {
+        const { data: senderProf } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+        const senderName = senderProf?.name || 'A collaborator';
+
+        const { data: roomData } = await supabase
+          .from('chat_rooms')
+          .select('post_id, posts:post_id(title)')
+          .eq('id', roomId)
+          .maybeSingle();
+        const postTitle = roomData?.posts?.title || 'Challenge';
+
+        const { data: participants } = await supabase
+          .from('chat_participants')
+          .select('user_id')
+          .eq('chat_room_id', roomId)
+          .neq('user_id', authData.user.id);
+
+        if (participants && participants.length > 0) {
+          const notifsToInsert = participants.map(p => ({
+            user_id: p.user_id,
+            type: 'chat_message',
+            message: `New message from ${senderName} in "${postTitle}"`,
+            payload: {
+              room_id: roomId,
+              roomId: roomId,
+              post_id: roomData?.post_id,
+              post_title: postTitle,
+              sender_id: authData.user.id,
+              sender_name: senderName,
+              preview: content ? (content.length > 50 ? content.substring(0, 47) + '...' : content) : 'Sent an attachment'
+            },
+            read: false,
+          }));
+
+          await supabase.from('notifications').insert(notifsToInsert);
+        }
+      } catch (notifErr) {
+        console.warn('[storage] Failed to dispatch chat notification:', notifErr);
+      }
+
+      return { data: newMsg, error: null };
     } catch (err) {
       return { data: null, error: { message: err.message } };
     }
   }
 
-  // Fallback
+  // Fallback Local Storage
   const session = getLocal(LOCAL_SESSION, {});
   const msgs = getLocal(LOCAL_CHAT_MSGS, []);
 
@@ -954,7 +1020,88 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
 
   msgs.push(newMsg);
   setLocal(LOCAL_CHAT_MSGS, msgs);
+
+  // Local notifications dispatch
+  try {
+    const rooms = getLocal(LOCAL_CHAT_ROOMS, []);
+    const room = rooms.find(r => r.id === roomId);
+    if (room && room.participants) {
+      const posts = getLocal(LOCAL_POSTS, []);
+      const post = posts.find(p => p.id === room.post_id);
+      const otherParticipants = room.participants.filter(pid => pid !== session.id);
+      const notifs = getLocal(LOCAL_NOTIFS, []);
+      otherParticipants.forEach(pid => {
+        notifs.unshift({
+          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          user_id: pid,
+          type: 'chat_message',
+          message: `New message from ${session.name || 'Collaborator'} in "${post?.title || 'Challenge'}"`,
+          payload: {
+            room_id: roomId,
+            roomId: roomId,
+            post_id: room.post_id,
+            post_title: post?.title,
+            sender_id: session.id,
+            sender_name: session.name,
+            preview: content ? (content.length > 50 ? content.substring(0, 47) + '...' : content) : 'Sent an attachment'
+          },
+          read: false,
+          created_at: new Date().toISOString()
+        });
+      });
+      setLocal(LOCAL_NOTIFS, notifs);
+    }
+  } catch (e) {
+    console.warn('[storage] local notif dispatch error:', e);
+  }
+
   return { data: newMsg, error: null };
+}
+
+/**
+ * Mark chat notifications as read for a specific chat room
+ */
+export async function markChatRoomNotificationsRead(roomId, userId) {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = userId || authData?.user?.id;
+      if (!uid) return { data: null, error: null };
+
+      const { data: userNotifs } = await supabase
+        .from('notifications')
+        .select('id, payload')
+        .eq('user_id', uid)
+        .eq('type', 'chat_message')
+        .eq('read', false);
+
+      if (userNotifs && userNotifs.length > 0) {
+        const matchingIds = userNotifs
+          .filter(n => n.payload?.room_id === roomId || n.payload?.roomId === roomId)
+          .map(n => n.id);
+
+        if (matchingIds.length > 0) {
+          await supabase
+            .from('notifications')
+            .update({ read: true })
+            .in('id', matchingIds);
+        }
+      }
+      return { data: true, error: null };
+    } catch (err) {
+      return { data: null, error: { message: err.message } };
+    }
+  }
+
+  const notifs = getLocal(LOCAL_NOTIFS, []);
+  const updated = notifs.map(n => {
+    if (n.type === 'chat_message' && (n.payload?.room_id === roomId || n.payload?.roomId === roomId)) {
+      return { ...n, read: true };
+    }
+    return n;
+  });
+  setLocal(LOCAL_NOTIFS, updated);
+  return { data: true, error: null };
 }
 
 /**
