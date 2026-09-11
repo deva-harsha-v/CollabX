@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
 );
 
 -- ============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- ROW LEVEL SECURITY (RLS) POLICIES & HELPER FUNCTIONS
 -- ============================================================================
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -91,7 +91,22 @@ ALTER TABLE public.chat_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
+-- Helper function to check room participation without RLS recursion
+CREATE OR REPLACE FUNCTION public.is_chat_participant(p_chat_room_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.chat_participants
+        WHERE chat_room_id = p_chat_room_id AND user_id = p_user_id
+    );
+$$;
+
 -- PROFILES POLICIES
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+
 CREATE POLICY "Public profiles are viewable by everyone" 
     ON public.profiles FOR SELECT USING (true);
 
@@ -99,6 +114,10 @@ CREATE POLICY "Users can update their own profile"
     ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- NOTIFICATIONS POLICIES
+DROP POLICY IF EXISTS "Users can read only their own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can insert notifications" ON public.notifications;
+
 CREATE POLICY "Users can read only their own notifications" 
     ON public.notifications FOR SELECT USING (auth.uid() = user_id);
 
@@ -109,6 +128,10 @@ CREATE POLICY "Users can insert notifications"
     ON public.notifications FOR INSERT WITH CHECK (true);
 
 -- CONTACT REQUESTS POLICIES
+DROP POLICY IF EXISTS "Posters and solvers can view relevant contact requests" ON public.contact_requests;
+DROP POLICY IF EXISTS "Solvers can insert contact requests" ON public.contact_requests;
+DROP POLICY IF EXISTS "Posters can update contact requests" ON public.contact_requests;
+
 CREATE POLICY "Posters and solvers can view relevant contact requests" 
     ON public.contact_requests FOR SELECT USING (
         auth.uid() = solver_id OR 
@@ -123,26 +146,30 @@ CREATE POLICY "Posters can update contact requests"
         auth.uid() IN (SELECT author_id FROM public.posts WHERE id = post_id)
     );
 
--- CHAT POLICIES
+-- CHAT POLICIES (Using security definer function to avoid infinite recursion)
+DROP POLICY IF EXISTS "Chat participants can view their rooms" ON public.chat_rooms;
+DROP POLICY IF EXISTS "Chat participants can view participant lists" ON public.chat_participants;
+DROP POLICY IF EXISTS "Chat participants can view messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Chat participants can insert messages" ON public.chat_messages;
+
 CREATE POLICY "Chat participants can view their rooms" 
     ON public.chat_rooms FOR SELECT USING (
-        EXISTS (SELECT 1 FROM public.chat_participants WHERE chat_room_id = chat_rooms.id AND user_id = auth.uid())
+        public.is_chat_participant(id, auth.uid())
     );
 
 CREATE POLICY "Chat participants can view participant lists" 
     ON public.chat_participants FOR SELECT USING (
-        EXISTS (SELECT 1 FROM public.chat_participants cp WHERE cp.chat_room_id = chat_participants.chat_room_id AND cp.user_id = auth.uid())
+        user_id = auth.uid() OR public.is_chat_participant(chat_room_id, auth.uid())
     );
 
 CREATE POLICY "Chat participants can view messages" 
     ON public.chat_messages FOR SELECT USING (
-        EXISTS (SELECT 1 FROM public.chat_participants WHERE chat_room_id = chat_messages.chat_room_id AND user_id = auth.uid())
+        public.is_chat_participant(chat_room_id, auth.uid())
     );
 
 CREATE POLICY "Chat participants can insert messages" 
     ON public.chat_messages FOR INSERT WITH CHECK (
-        auth.uid() = sender_id AND 
-        EXISTS (SELECT 1 FROM public.chat_participants WHERE chat_room_id = chat_messages.chat_room_id AND user_id = auth.uid())
+        auth.uid() = sender_id AND public.is_chat_participant(chat_room_id, auth.uid())
     );
 
 -- ============================================================================
