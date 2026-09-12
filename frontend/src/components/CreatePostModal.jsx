@@ -1,34 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone, UserCheck, Lock } from 'lucide-react';
+import { X, MapPin, Navigation, Building2, Upload, AlertCircle, Sparkles, Phone, UserCheck, Lock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { getUserEmergencyPostStatus } from '../lib/storage';
 import RoleAutocompleteInput from './RoleAutocompleteInput';
 
 const CreatePostModal = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { addNewPost, currentUser } = useApp();
 
-  // Emergency Mode is STRICTLY limited to the 1st post right after emergency signup
-  const isEmergencyFirstPost = Boolean(
-    currentUser?.is_emergency && 
-    currentUser?.emergency_first_post_pending && 
-    !currentUser?.has_made_emergency_post
-  );
-
-  // If the user has already posted their 1 emergency post, but hasn't established their password
-  const isEmergencyNeedsSetup = Boolean(
-    currentUser?.is_emergency && 
-    currentUser?.has_made_emergency_post && 
-    !currentUser?.has_password
-  );
-
-  const isEmergencyUser = isEmergencyFirstPost;
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [solverRequirement, setSolverRequirement] = useState('organisation_only'); // 'organisation_only' | 'public_open'
   
+  // Emergency challenge selection (1 per week limit)
+  const [isEmergencyOption, setIsEmergencyOption] = useState(false);
+  const [emergencyQuota, setEmergencyQuota] = useState({
+    loading: true,
+    canPostEmergency: true,
+    remainingDays: 0,
+    remainingHours: 0,
+    nextAvailableDate: null,
+  });
+
   // Roles / Skills list
   const [skills, setSkills] = useState([]);
 
@@ -45,6 +40,25 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check emergency quota whenever modal opens or user changes
+  useEffect(() => {
+    if (isOpen && currentUser?.id) {
+      setEmergencyQuota(prev => ({ ...prev, loading: true }));
+      getUserEmergencyPostStatus(currentUser.id).then(status => {
+        setEmergencyQuota({
+          loading: false,
+          canPostEmergency: Boolean(status.canPostEmergency),
+          remainingDays: status.remainingDays || 0,
+          remainingHours: status.remainingHours || 0,
+          nextAvailableDate: status.nextAvailableDate || null,
+        });
+        if (!status.canPostEmergency) {
+          setIsEmergencyOption(false);
+        }
+      });
+    }
+  }, [isOpen, currentUser?.id]);
 
   if (!isOpen) return null;
 
@@ -117,6 +131,7 @@ const CreatePostModal = ({ isOpen, onClose }) => {
     setCoordinates(null);
     setGeoError('');
     setErrorMsg('');
+    setIsEmergencyOption(false);
     setIsSubmitting(false);
     onClose();
   };
@@ -124,11 +139,6 @@ const CreatePostModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
-
-    if (isEmergencyNeedsSetup) {
-      setErrorMsg('Please set your account password and complete profile details in Account Settings before posting regular challenges.');
-      return;
-    }
 
     if (!title.trim()) {
       setErrorMsg('Please enter a title for the challenge.');
@@ -139,24 +149,26 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       return;
     }
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (!isEmergencyFirstPost && (!cleanPhone || cleanPhone.length !== 10)) {
+    if (!cleanPhone || cleanPhone.length !== 10) {
       setErrorMsg('Please enter a valid 10-digit phone number (numbers only, e.g. 9876543210).');
       return;
     }
+
+    const postAsEmergency = Boolean(isEmergencyOption && emergencyQuota.canPostEmergency);
 
     setIsSubmitting(true);
 
     const { error } = await addNewPost({
       title,
       description,
-      phone_number: cleanPhone || '9999999999',
+      phone_number: cleanPhone,
       solver_requirement: solverRequirement,
       skills: skills.length > 0 ? skills : null, // Optional
       organization: organization || null,
       address: address || null,
       coordinates: coordinates || null, // Full unrounded float numbers
       media: mediaPreview || null,
-      is_emergency: isEmergencyFirstPost,
+      is_emergency: postAsEmergency,
     });
 
     setIsSubmitting(false);
@@ -188,66 +200,92 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-[#0b2240]/20 border border-[#0ea5e9]/35 flex items-center justify-center text-[#38bdf8]">
-            <Sparkles className="w-5 h-5" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            isEmergencyOption && emergencyQuota.canPostEmergency 
+              ? 'bg-red-950/80 border border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
+              : 'bg-[#0b2240]/20 border border-[#0ea5e9]/35 text-[#38bdf8]'
+          }`}>
+            {isEmergencyOption && emergencyQuota.canPostEmergency ? (
+              <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse" />
+            ) : (
+              <Sparkles className="w-5 h-5" />
+            )}
           </div>
           <div>
             <h3 className="text-2xl font-bold font-['Outfit'] text-[#f0f9ff]">
-              {isEmergencyFirstPost ? '🚨 Post Emergency Challenge' : 'Post a Challenge'}
+              {isEmergencyOption && emergencyQuota.canPostEmergency ? '🚨 Post Emergency Challenge' : 'Post a Challenge'}
             </h3>
             <p className="text-xs text-[#38bdf8] font-mono tracking-wider uppercase">
-              {isEmergencyFirstPost ? 'Priority Live Feed Placement • 1 Allowed Emergency Post' : 'Publish to Verified Solvers'}
+              {isEmergencyOption && emergencyQuota.canPostEmergency ? 'Priority Live Feed Placement • 1 Allowed Per Week' : 'Publish to Verified Solvers'}
             </p>
           </div>
         </div>
 
-        {/* Setup Required Notice (If emergency post is already exhausted and password not set) */}
-        {isEmergencyNeedsSetup && (
-          <div className="mb-5 p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-200 text-xs shadow-[0_0_30px_rgba(245,158,11,0.25)] flex items-start gap-3.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div className="space-y-2 flex-1">
-              <h4 className="font-bold text-sm text-amber-100 font-['Outfit']">
-                ⚠️ Emergency Limit Reached: Account Setup Required for Next Posts
-              </h4>
-              <p className="leading-relaxed text-amber-200/90 text-xs">
-                Your emergency crisis registration allows <strong>exactly 1 emergency post</strong>, which has already been submitted and pinned to the live feed.
-              </p>
-              <div className="p-3 rounded-xl bg-black/40 border border-amber-500/30 text-[11px] text-amber-100/90 space-y-1 font-mono">
-                <p>• <strong>1st Post (Emergency)</strong>: Completed & pinned to feed.</p>
-                <p>• <strong>2nd Post & Next</strong>: Must be a standard normal post.</p>
-                <p>• <strong>Action Needed</strong>: You must set your password and phone in Account Settings before posting again.</p>
+        {/* EMERGENCY OPTION SELECTOR (1 Per Week Limit) */}
+        <div className={`mb-5 p-4 rounded-2xl border transition-all ${
+          isEmergencyOption && emergencyQuota.canPostEmergency
+            ? 'bg-red-950/70 border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.35)]'
+            : (emergencyQuota.canPostEmergency
+                ? 'bg-[#06142e]/90 border-red-500/40 hover:border-red-500/70 shadow-md'
+                : 'bg-[#06142e]/70 border-gray-700/60 opacity-90')
+        }`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                isEmergencyOption && emergencyQuota.canPostEmergency
+                  ? 'bg-red-600 text-white shadow-lg'
+                  : (emergencyQuota.canPostEmergency ? 'bg-red-950/80 text-red-400 border border-red-500/40' : 'bg-gray-800 text-gray-400')
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
               </div>
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleReset();
-                    navigate('/account');
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-md transition-all"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Set Password in Account Settings</span>
-                </button>
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-bold text-sm text-[#f0f9ff] font-['Outfit']">
+                    🚨 Post as Emergency / Crisis Challenge
+                  </h4>
+                  {emergencyQuota.loading ? (
+                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-mono text-[#38bdf8]">Checking quota...</span>
+                  ) : emergencyQuota.canPostEmergency ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[10px] font-bold">
+                      1 Allowed / Week (Available)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold">
+                      Weekly Limit Reached (0/1 Available)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#38bdf8]/80 mt-1 leading-snug">
+                  Emergency challenges are given highest priority and pinned to the very top of the live feed across all users and devices.
+                </p>
+                {!emergencyQuota.loading && !emergencyQuota.canPostEmergency && (
+                  <div className="mt-2.5 p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[11px] font-mono text-amber-200/90 space-y-1">
+                    <p>🔒 <strong>Weekly Quota Limit Active:</strong> Each user can only publish 1 emergency post per 7 days.</p>
+                    <p className="text-amber-300 font-bold">
+                      Next emergency post quota unlocks in ~{emergencyQuota.remainingDays > 1 ? `${emergencyQuota.remainingDays} days` : `${emergencyQuota.remainingHours || 24} hours`}
+                      {emergencyQuota.nextAvailableDate ? ` (${new Date(emergencyQuota.nextAvailableDate).toLocaleDateString()})` : ''}.
+                    </p>
+                    <p className="text-gray-300 text-[10px]">All other posts within this 7-day period must be submitted as normal challenges.</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Emergency Alert Banner (Only on 1st emergency post) */}
-        {isEmergencyFirstPost && (
-          <div className="mb-4 p-4 rounded-2xl bg-red-950/80 border border-red-500/80 text-red-200 text-xs font-mono shadow-[0_0_25px_rgba(239,68,68,0.4)] flex items-start gap-3 animate-pulse">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-bold text-sm text-red-100 font-['Outfit']">🚨 EMERGENCY / CRISIS CHALLENGE POST (1 ALLOWED)</h4>
-              <p className="mt-1 text-red-200/90 leading-relaxed">
-                This challenge will be tagged as an Emergency and pinned to the very top of the live feed across all users and devices. Subsequent challenges will be normal posts.
-              </p>
-            </div>
+            {/* Toggle Switch */}
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+              <input
+                type="checkbox"
+                disabled={!emergencyQuota.canPostEmergency || emergencyQuota.loading}
+                checked={isEmergencyOption && emergencyQuota.canPostEmergency}
+                onChange={(e) => setIsEmergencyOption(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className={`w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                !emergencyQuota.canPostEmergency ? 'cursor-not-allowed opacity-50' : 'peer-checked:bg-red-600'
+              }`}></div>
+            </label>
           </div>
-        )}
+        </div>
 
         {/* Error Message */}
         {errorMsg && (
@@ -277,25 +315,25 @@ const CreatePostModal = ({ isOpen, onClose }) => {
           {/* Direct Phone Number */}
           <div>
             <label className="block text-xs font-semibold text-[#38bdf8] uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Direct Phone Number {isEmergencyUser ? <span className="text-[10px] text-[#38bdf8]/60 font-normal">(Optional for Emergency)</span> : <span className="text-[#38bdf8]">*</span>}</span>
+              <span>Direct Phone Number <span className="text-[#38bdf8]">* (10 Digits)</span></span>
               <span className="text-[10px] text-[#38bdf8]/60 font-mono font-normal">Locked until solver accepted</span>
             </label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#38bdf8]/60" />
               <input
                 type="tel"
-                required={!isEmergencyUser}
+                required
                 placeholder="9876543210"
                 maxLength={10}
                 inputMode="numeric"
                 pattern="[0-9]{10}"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                className="w-full pl-9 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#06142e]/80 border border-[#0ea5e9]/35 rounded-xl text-sm text-[#f0f9ff] placeholder:text-[#38bdf8]/40 focus:outline-none focus:border-[#38bdf8] transition-colors font-mono"
               />
             </div>
             <p className="text-[10px] text-[#38bdf8]/60 font-mono mt-1">
-              {isEmergencyUser ? 'Optional: leave blank or enter a 10-digit number' : 'Must be exactly 10 numeric digits'}
+              Must be exactly 10 numeric digits
             </p>
           </div>
 
@@ -478,27 +516,21 @@ const CreatePostModal = ({ isOpen, onClose }) => {
 
           {/* Submit CTA */}
           <div className="pt-3">
-            {isEmergencyNeedsSetup ? (
-              <button
-                type="button"
-                onClick={() => {
-                  handleReset();
-                  navigate('/account');
-                }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Set Password in Settings to Post Challenges</span>
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full red-pill-button py-3 text-base font-bold shadow-lg disabled:opacity-50"
-              >
-                <span>{isSubmitting ? 'Posting Challenge...' : (isEmergencyFirstPost ? '🚨 Publish Priority Emergency Challenge' : 'Post Challenge')}</span>
-              </button>
-            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-3.5 text-base font-bold shadow-lg transition-all rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 ${
+                isEmergencyOption && emergencyQuota.canPostEmergency
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-[0_0_25px_rgba(239,68,68,0.5)] border border-red-400/50 cursor-pointer'
+                  : 'red-pill-button'
+              }`}
+            >
+              <span>
+                {isSubmitting 
+                  ? 'Posting Challenge...' 
+                  : (isEmergencyOption && emergencyQuota.canPostEmergency ? '🚨 Publish Priority Emergency Challenge' : 'Post Challenge')}
+              </span>
+            </button>
           </div>
         </form>
       </div>

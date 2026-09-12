@@ -81,40 +81,12 @@ const FeedPage = () => {
     };
   }, [loadFeedData]);
 
-  const hasAutoOpenedRef = useRef(false);
-  const [showSetupRequiredModal, setShowSetupRequiredModal] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const isEmergencyAction = params.get('action') === 'emergency_post';
-    const isPendingFirstPost = Boolean(
-      currentUser?.is_emergency && 
-      currentUser?.emergency_first_post_pending && 
-      !currentUser?.has_made_emergency_post
-    );
-
-    if ((isEmergencyAction || isPendingFirstPost) && !hasAutoOpenedRef.current) {
-      hasAutoOpenedRef.current = true;
-      setIsCreateOpen(true);
-      if (isEmergencyAction) {
-        navigate(location.pathname, { replace: true });
-      }
-    }
-  }, [location.search, location.pathname, currentUser, navigate]);
-
   const handleOpenCreate = () => {
-    if (currentUser?.is_emergency && currentUser?.has_made_emergency_post && !currentUser?.has_password) {
-      setShowSetupRequiredModal(true);
-      return;
-    }
     setIsCreateOpen(true);
   };
 
   const handleCloseCreate = () => {
     setIsCreateOpen(false);
-    if (location.search.includes('action=emergency_post')) {
-      navigate(location.pathname, { replace: true });
-    }
     loadFeedData();
   };
 
@@ -505,65 +477,7 @@ const FeedPage = () => {
       {/* Create Post Modal */}
       <CreatePostModal isOpen={isCreateOpen} onClose={handleCloseCreate} />
 
-      {/* Account Setup Required Modal (If emergency post already exhausted and password not set) */}
-      {showSetupRequiredModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-lg p-6 sm:p-8 bg-[#0b2240]/95 border-2 border-amber-500/50 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.3)] text-[#f0f9ff] backdrop-blur-2xl space-y-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
-                <Lock className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold font-['Outfit'] text-[#f0f9ff]">
-                  Emergency Post Limit (1) Reached
-                </h3>
-                <p className="text-xs text-amber-300 font-mono">
-                  Setup Account Details to Post Regular Challenges
-                </p>
-              </div>
-            </div>
 
-            <p className="text-xs text-[#38bdf8] leading-relaxed">
-              Your emergency fast-track registration included <strong>exactly 1 emergency crisis challenge</strong>, which is currently live and pinned to the feed.
-            </p>
-
-            <div className="p-3.5 rounded-2xl bg-[#06142e]/90 border border-amber-500/30 text-xs text-amber-100/90 space-y-2 font-mono">
-              <div className="flex items-start gap-2">
-                <span className="text-emerald-400 font-bold">✓ 1st Challenge:</span>
-                <span>Emergency post completed & pinned to feed.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-amber-400 font-bold">ℹ 2nd Challenge:</span>
-                <span>Must be posted as a standard regular challenge.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-cyan-400 font-bold">🔒 Action Needed:</span>
-                <span>Set your password in Account Settings to unlock regular posting.</span>
-              </div>
-            </div>
-
-            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSetupRequiredModal(false);
-                  navigate('/account');
-                }}
-                className="w-full sm:flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs tracking-wide shadow-lg transition-all"
-              >
-                Go to Account Settings
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSetupRequiredModal(false)}
-                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#f0f9ff]/70 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Realtime Chat Room Modal */}
       <ChatRoomModal

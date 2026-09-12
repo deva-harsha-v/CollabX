@@ -9,7 +9,7 @@
  * ============================================================================
  */
 
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient.js';
 
 const LOCAL_USERS = 'collabx_users';
 const LOCAL_SESSION = 'collabx_session';
@@ -709,26 +709,125 @@ export async function signOut() {
 }
 
 /**
- * Create Post: Stores required phone_number, optional skills, float coordinates, solver_requirement
+ * Check if a user is eligible to publish an Emergency Post.
+ * RULE: A user can only use ONE emergency post per week (7 days).
+ */
+export async function getUserEmergencyPostStatus(userId) {
+  if (!userId) {
+    return {
+      canPostEmergency: true,
+      remainingDays: 0,
+      remainingHours: 0,
+      nextAvailableDate: null,
+      lastEmergencyPost: null,
+    };
+  }
+
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let latestEmergencyPost = null;
+
+  // 1. Check Supabase posts table for author's previous emergency challenges
+  if (isSupabaseConfigured) {
+    try {
+      const { data: dbPosts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('author_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (!error && Array.isArray(dbPosts)) {
+        for (const post of dbPosts) {
+          if (isPostEmergency(post)) {
+            const postTime = new Date(post.created_at || post.createdAt).getTime();
+            if (!latestEmergencyPost || postTime > new Date(latestEmergencyPost.created_at || latestEmergencyPost.createdAt).getTime()) {
+              latestEmergencyPost = post;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[storage] Error querying Supabase for user emergency posts:', err);
+    }
+
+    // Also check emergency sync notifications if author_id matches
+    try {
+      const { data: syncRows } = await supabase
+        .from('notifications')
+        .select('payload, created_at')
+        .eq('type', 'emergency_post_sync')
+        .order('created_at', { ascending: false });
+
+      if (Array.isArray(syncRows)) {
+        for (const row of syncRows) {
+          const payload = row.payload || {};
+          const p = payload.post || {};
+          const pAuthor = payload.author_id || p.author_id || p.authorId;
+          if (pAuthor === userId) {
+            const rowTime = new Date(payload.timestamp || row.created_at || p.created_at).getTime();
+            if (!latestEmergencyPost || rowTime > new Date(latestEmergencyPost.created_at || latestEmergencyPost.createdAt).getTime()) {
+              latestEmergencyPost = p.title ? p : { created_at: new Date(rowTime).toISOString() };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Check local posts cache
+  const localPosts = getLocal(LOCAL_POSTS, []);
+  for (const post of localPosts) {
+    const pAuthor = post.author_id || post.authorId;
+    if (pAuthor === userId && isPostEmergency(post)) {
+      const postTime = new Date(post.created_at || post.createdAt).getTime();
+      if (!latestEmergencyPost || postTime > new Date(latestEmergencyPost.created_at || latestEmergencyPost.createdAt).getTime()) {
+        latestEmergencyPost = post;
+      }
+    }
+  }
+
+  // 3. Check persistent localStorage timestamp
+  const localTimestamp = getLocal(`collabx_last_emergency_${userId}`, null);
+  if (localTimestamp) {
+    const cTime = new Date(localTimestamp).getTime();
+    if (!latestEmergencyPost || cTime > new Date(latestEmergencyPost.created_at || latestEmergencyPost.createdAt).getTime()) {
+      latestEmergencyPost = { created_at: localTimestamp };
+    }
+  }
+
+  if (latestEmergencyPost) {
+    const postTime = new Date(latestEmergencyPost.created_at || latestEmergencyPost.createdAt).getTime();
+    const elapsed = now - postTime;
+    if (elapsed < SEVEN_DAYS_MS) {
+      const remainingMs = SEVEN_DAYS_MS - elapsed;
+      const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+      const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+      const nextAvailableDate = new Date(postTime + SEVEN_DAYS_MS);
+      return {
+        canPostEmergency: false,
+        remainingDays,
+        remainingHours,
+        nextAvailableDate,
+        lastEmergencyPost: latestEmergencyPost,
+      };
+    }
+  }
+
+  return {
+    canPostEmergency: true,
+    remainingDays: 0,
+    remainingHours: 0,
+    nextAvailableDate: null,
+    lastEmergencyPost: latestEmergencyPost,
+  };
+}
+
+/**
+ * Create Post: Stores required phone_number, optional skills, float coordinates, solver_requirement.
+ * If is_emergency is requested, strictly checks and enforces 1 emergency post per 7-day rule.
  */
 export async function createPost(postData) {
   const session = getLocal(LOCAL_SESSION, {});
-  // An emergency user is limited to strictly 1 emergency crisis challenge.
-  const alreadyMadeEmergencyPost = Boolean(session.has_made_emergency_post);
-  const isEmergency = !alreadyMadeEmergencyPost && Boolean(
-    session.emergency_first_post_pending ||
-    (postData.is_emergency && !alreadyMadeEmergencyPost)
-  );
-
-  const solverReq = postData.solver_requirement || postData.solverRequirement || 'organisation_only';
-  const rawSkills = Array.isArray(postData.skills) ? [...postData.skills] : [];
-  const encodedSkills = [...rawSkills, `__req:${solverReq}`];
-  if (isEmergency) {
-    encodedSkills.unshift('emergency');
-  }
-
-  // Fallback phone if emergency user didn't specify one
-  const cleanPhone = (postData.phone_number || '').trim() || (isEmergency ? '9999999999' : '');
 
   let authUser = null;
   if (isSupabaseConfigured) {
@@ -736,14 +835,6 @@ export async function createPost(postData) {
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user) {
         authUser = authData.user;
-      } else if (session?.email && session?.temp_emergency_secret) {
-        try {
-          const { data: sData } = await supabase.auth.signInWithPassword({
-            email: session.email,
-            password: session.temp_emergency_secret,
-          });
-          if (sData?.user) authUser = sData.user;
-        } catch (e) {}
       }
     } catch (e) {}
   }
@@ -752,7 +843,36 @@ export async function createPost(postData) {
   const effectiveUserId = authUser?.id || session?.id || generateUUID();
   const authorName = session?.name || authUser?.user_metadata?.name || 'Community Member';
   const authorAvatar = session?.avatar || authUser?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
-  const authorAccountType = session?.account_type || (isEmergency ? 'emergency' : 'public');
+  const authorAccountType = session?.account_type || authUser?.user_metadata?.account_type || 'public';
+
+  // Check emergency eligibility (strictly 1 emergency post per 7 days per user)
+  const wantsEmergency = Boolean(postData.is_emergency);
+  let isEmergency = false;
+
+  if (wantsEmergency) {
+    const emergencyStatus = await getUserEmergencyPostStatus(effectiveUserId);
+    if (!emergencyStatus.canPostEmergency) {
+      const waitMsg = emergencyStatus.remainingDays > 1
+        ? `${emergencyStatus.remainingDays} days`
+        : `${emergencyStatus.remainingHours || 24} hours`;
+      return {
+        data: null,
+        error: {
+          message: `Weekly Emergency Quota Reached: A user can only publish 1 emergency challenge per week (7 days). Your next emergency post quota unlocks in approximately ${waitMsg}. Please submit this challenge as a normal post.`
+        }
+      };
+    }
+    isEmergency = true;
+  }
+
+  const solverReq = postData.solver_requirement || postData.solverRequirement || 'organisation_only';
+  const rawSkills = Array.isArray(postData.skills) ? [...postData.skills] : [];
+  const encodedSkills = [...rawSkills, `__req:${solverReq}`];
+  if (isEmergency) {
+    encodedSkills.unshift('emergency');
+  }
+
+  const cleanPhone = (postData.phone_number || '').trim();
 
   let mediaUrl = null;
   if (isSupabaseConfigured && postData.media && postData.media.startsWith('data:')) {
@@ -866,21 +986,10 @@ export async function createPost(postData) {
     const emergMap = getLocal('collabx_emergency_posts_map', {});
     emergMap[finalPost.id] = true;
     setLocal('collabx_emergency_posts_map', emergMap);
-  }
 
-  // 5. If this was an emergency post or first emergency post, mark it permanently used
-  if (session && (isEmergency || session.emergency_first_post_pending)) {
-    session.emergency_first_post_pending = false;
-    session.has_made_emergency_post = true;
-    setLocal(LOCAL_SESSION, session);
-
-    const users = getLocal(LOCAL_USERS, []);
-    const updatedUsers = users.map(u => u.id === session.id ? { 
-      ...u, 
-      emergency_first_post_pending: false, 
-      has_made_emergency_post: true 
-    } : u);
-    setLocal(LOCAL_USERS, updatedUsers);
+    // Record timestamp for 7-day cooldown
+    const nowIso = new Date().toISOString();
+    setLocal(`collabx_last_emergency_${effectiveUserId}`, nowIso);
   }
 
   // 6. Cross-device broadcast and sync

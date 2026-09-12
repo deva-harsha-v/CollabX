@@ -193,28 +193,8 @@ export const AppProvider = ({ children }) => {
     }
     if (!user) return { data: null, error: { message: 'Must be logged in to post' } };
 
-    // Emergency challenge is strictly limited to 1 time (the very first post right after signup)
-    const isFirstEmergency = Boolean(
-      user.is_emergency && 
-      !user.has_made_emergency_post && 
-      (postData.is_emergency || user.emergency_first_post_pending)
-    );
-
-    const { data: newPost, error: postErr } = await apiCreatePost({
-      ...postData,
-      is_emergency: isFirstEmergency,
-    });
+    const { data: newPost, error: postErr } = await apiCreatePost(postData);
     if (postErr) return { data: null, error: postErr };
-
-    if (isFirstEmergency || user.emergency_first_post_pending) {
-      const updatedUser = {
-        ...user,
-        emergency_first_post_pending: false,
-        has_made_emergency_post: true,
-      };
-      setCurrentUser(updatedUser);
-      setLocal('collabx_session', updatedUser);
-    }
 
     // Refresh feed
     await refreshPosts();
