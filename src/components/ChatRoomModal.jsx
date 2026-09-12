@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Send, Paperclip, FileText, MessageSquare } from 'lucide-react';
+import { X, Send, Paperclip, FileText, MessageSquare, Download } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { getChatRoomForPost, getChatMessages, sendChatMessage } from '../lib/storage';
+import { getChatRoomForPost, getChatMessages, sendChatMessage, parseChatMessage, downloadAttachment } from '../lib/storage';
 import { useApp } from '../context/AppContext';
 
 const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
@@ -212,6 +212,7 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
               const isMine = msg.sender_id === currentUser?.id;
               const senderName = msg.profiles?.name || msg.sender_name || 'Participant';
               const senderAvatar = msg.profiles?.avatar_url || msg.sender_avatar;
+              const parsed = parseChatMessage(msg);
 
               return (
                 <div
@@ -234,24 +235,35 @@ const ChatRoomModal = ({ postId, postTitle, isOpen, onClose }) => {
                           : 'bg-[#06142e] border border-[#0ea5e9]/30 text-[#f0f9ff] rounded-tl-none'
                       }`}
                     >
-                      {msg.content && <p>{msg.content}</p>}
+                      {parsed.cleanContent && <p className="whitespace-pre-wrap">{parsed.cleanContent}</p>}
 
-                      {/* Attachment Rendering */}
-                      {msg.attachment_url && (
-                        <div className="mt-2 pt-2 border-t border-white/20">
-                          {msg.attachment_type === 'image' ? (
-                            <img src={msg.attachment_url} alt="Attachment" className="max-h-48 rounded-lg object-cover" />
-                          ) : (
-                            <a
-                              href={msg.attachment_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 underline text-[#38bdf8] hover:text-[#f0f9ff] font-mono text-[11px]"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              <span>View Attachment File</span>
-                            </a>
+                      {/* Attachment Rendering: Hides raw link, shows clean "View Attachment" button that downloads the file */}
+                      {parsed.attachmentUrl && (
+                        <div className={parsed.cleanContent ? "mt-2 pt-2 border-t border-white/20" : ""}>
+                          {parsed.attachmentType === 'image' && (
+                            <div className="mb-2">
+                              <img
+                                src={parsed.attachmentUrl}
+                                alt="Attachment"
+                                className="max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => downloadAttachment(parsed.attachmentUrl, parsed.fileName)}
+                              />
+                            </div>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => downloadAttachment(parsed.attachmentUrl, parsed.fileName)}
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl font-medium text-xs transition-all shadow-sm ${
+                              isMine
+                                ? 'bg-white/15 hover:bg-white/25 text-white border border-white/30'
+                                : 'bg-[#0ea5e9]/15 hover:bg-[#0ea5e9]/25 text-[#38bdf8] hover:text-[#f0f9ff] border border-[#0ea5e9]/40'
+                            }`}
+                            title={`Download ${parsed.fileName}`}
+                          >
+                            <FileText className="w-4 h-4 shrink-0" />
+                            <span className="font-semibold">View Attachment</span>
+                            <Download className="w-3.5 h-3.5 opacity-80 shrink-0 ml-0.5" />
+                          </button>
                         </div>
                       )}
                     </div>

@@ -2055,28 +2055,41 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
     } catch (e) {}
   }
 
-  if (attachmentFile && isSupabaseConfigured) {
-    try {
-      const fileExt = attachmentFile.name.split('.').pop();
-      const fileName = `chat_${Date.now()}.${fileExt}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('chat-attachments')
-        .upload(fileName, attachmentFile);
-
-      if (!uploadErr) {
-        const { data: urlData } = supabase.storage
+  if (attachmentFile) {
+    if (isSupabaseConfigured) {
+      try {
+        const fileExt = attachmentFile.name ? attachmentFile.name.split('.').pop() : 'bin';
+        const fileName = `chat_${Date.now()}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage
           .from('chat-attachments')
-          .getPublicUrl(fileName);
-        attachmentUrl = urlData.publicUrl;
-        attachmentType = attachmentFile.type.startsWith('image/') ? 'image' : 'document';
-      }
-    } catch (e) {}
+          .upload(fileName, attachmentFile);
+
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage
+            .from('chat-attachments')
+            .getPublicUrl(fileName);
+          attachmentUrl = urlData.publicUrl;
+          attachmentType = (attachmentFile.type && attachmentFile.type.startsWith('image/')) ? 'image' : 'document';
+        }
+      } catch (e) {}
+    }
+
+    // Fallback if not uploaded to Supabase storage (offline or bucket missing)
+    if (!attachmentUrl && typeof FileReader !== 'undefined') {
+      try {
+        attachmentUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target?.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(attachmentFile);
+        });
+        attachmentType = (attachmentFile.type && attachmentFile.type.startsWith('image/')) ? 'image' : 'document';
+      } catch (e) {}
+    }
   }
 
-  let finalContent = content ? content.trim() : '';
-  if (attachmentUrl) {
-    finalContent = finalContent ? `${finalContent}\n${attachmentUrl}` : attachmentUrl;
-  }
+  // Keep content clean: never embed raw download URL into user text content
+  const finalContent = content ? content.trim() : '';
 
   const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const timestamp = new Date().toISOString();
@@ -2153,7 +2166,7 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
         } catch (pe) {}
       }
 
-      // Insert message into Supabase chat_messages (columns: chat_room_id, sender_id, content)
+      // Insert message into Supabase chat_messages (columns: chat_room_id, sender_id, content, attachment_url, attachment_type)
       if (senderUserId) {
         try {
           await supabase
@@ -2162,8 +2175,20 @@ export async function sendChatMessage(roomId, content, attachmentFile) {
               chat_room_id: targetRoomId,
               sender_id: senderUserId,
               content: finalContent,
+              attachment_url: attachmentUrl,
+              attachment_type: attachmentType,
             }]);
-        } catch (e) {}
+        } catch (e) {
+          try {
+            await supabase
+              .from('chat_messages')
+              .insert([{
+                chat_room_id: targetRoomId,
+                sender_id: senderUserId,
+                content: finalContent,
+              }]);
+          } catch (e2) {}
+        }
       }
 
       // Exclude sender from notifications
@@ -3217,3 +3242,104 @@ export async function adminDeletePost(postId, authorId, postTitle, reason) {
   return { data: true, error: null };
 }
 
+/**
+ * Cleanly parses chat message content and extracts attachments.
+ * Strips raw attachment URLs so download links are NEVER shown as raw text.
+ */
+export function parseChatMessage(msg) {
+  if (!msg) return msg;
+  let text = (msg.content || '').trim();
+  let attachmentUrl = msg.attachment_url || null;
+  let attachmentType = msg.attachment_type || null;
+
+  // Detect Supabase storage URLs or attachment links embedded in legacy content
+  const urlRegex = /(https?:\/\/[^\s]+(?:\/chat-attachments\/[^\s]+|\.(?:pdf|docx?|pptx?|xlsx?|txt|csv|zip|rar|png|jpe?g|webp|gif|svg))(?:\?[^\s]*)?)/i;
+
+  if (!attachmentUrl) {
+    const match = text.match(urlRegex);
+    if (match) {
+      attachmentUrl = match[1];
+    }
+  }
+
+  if (attachmentUrl) {
+    // Strip the attachmentUrl from text so the raw link is NEVER shown in the chat text
+    text = text.replace(attachmentUrl, '').trim();
+    // Clean up dummy placeholder text (e.g. "." or "..")
+    if (text === '.' || text === '..') {
+      text = '';
+    }
+
+    if (!attachmentType) {
+      const lower = attachmentUrl.toLowerCase();
+      if (/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(lower)) {
+        attachmentType = 'image';
+      } else {
+        attachmentType = 'document';
+      }
+    }
+  }
+
+  // Extract clean filename
+  let fileName = 'attachment';
+  if (attachmentUrl) {
+    const rawName = attachmentUrl.split('/').pop()?.split('?')[0] || 'attachment';
+    try {
+      fileName = decodeURIComponent(rawName);
+    } catch (e) {
+      fileName = rawName;
+    }
+  }
+
+  return {
+    ...msg,
+    cleanContent: text,
+    attachmentUrl,
+    attachmentType,
+    fileName,
+  };
+}
+
+/**
+ * Downloads attachment directly to the user's computer on click.
+ */
+export async function downloadAttachment(url, filename = 'attachment') {
+  if (!url) return;
+  try {
+    if (url.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Fetch failed');
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+  } catch (err) {
+    // Fallback: direct anchor download or open in new tab
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+}

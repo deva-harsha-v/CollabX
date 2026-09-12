@@ -26,7 +26,8 @@ import {
   Lightbulb,
   ArrowRight,
   Sparkles,
-  Lock
+  Lock,
+  Download
 } from 'lucide-react';
 import LogoIcon from '../components/LogoIcon';
 import { 
@@ -38,7 +39,9 @@ import {
   getAllAdminContactRequests,
   getChatMessages,
   adminDeletePost,
-  createSignedVerificationUrl 
+  createSignedVerificationUrl,
+  parseChatMessage,
+  downloadAttachment
 } from '../lib/storage';
 import UserBadge from '../components/UserBadge';
 
@@ -1254,33 +1257,40 @@ const AdminPortalPage = () => {
                   <span>Loading Message Transcript...</span>
                 </div>
               ) : roomMessages.length > 0 ? (
-                roomMessages.map((msg) => (
-                  <div key={msg.id} className="p-3 rounded-xl bg-[#0b2240]/70 border border-[#0ea5e9]/30">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="font-bold text-xs text-red-300">
-                        {msg.profiles?.name || msg.sender_name || 'Participant'}
-                      </span>
-                      <span className="text-[10px] font-mono text-[#38bdf8]/60">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#f0f9ff] leading-relaxed whitespace-pre-line">
-                      {msg.content}
-                    </p>
-                    {msg.attachment_url && (
-                      <div className="mt-2">
-                        <a
-                          href={msg.attachment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-red-400 hover:text-red-300 underline inline-flex items-center gap-1 font-mono"
-                        >
-                          📎 View File Attachment
-                        </a>
+                roomMessages.map((msg) => {
+                  const parsed = parseChatMessage(msg);
+                  return (
+                    <div key={msg.id} className="p-3 rounded-xl bg-[#0b2240]/70 border border-[#0ea5e9]/30">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="font-bold text-xs text-red-300">
+                          {msg.profiles?.name || msg.sender_name || 'Participant'}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#38bdf8]/60">
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))
+                      {parsed.cleanContent && (
+                        <p className="text-xs text-[#f0f9ff] leading-relaxed whitespace-pre-line">
+                          {parsed.cleanContent}
+                        </p>
+                      )}
+                      {parsed.attachmentUrl && (
+                        <div className={parsed.cleanContent ? "mt-2 pt-1" : ""}>
+                          <button
+                            type="button"
+                            onClick={() => downloadAttachment(parsed.attachmentUrl, parsed.fileName)}
+                            className="text-xs bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-300 hover:text-white px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 font-mono transition-all shadow-sm"
+                            title={`Download ${parsed.fileName}`}
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>View Attachment</span>
+                            <Download className="w-3 h-3 opacity-80 ml-0.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="py-20 text-center text-[#38bdf8]/60 font-mono text-xs italic">
                   No messages have been sent in this collaboration room yet.
