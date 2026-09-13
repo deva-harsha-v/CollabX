@@ -11,7 +11,6 @@ Built for **Smart India Hackathon** — Problem Statement ID `SIH26043` — unde
 [![Vite](https://img.shields.io/badge/Bundler-Vite-646CFF)](https://vitejs.dev/)
 [![Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E)](https://supabase.com/)
 [![Express](https://img.shields.io/badge/API-Express-000000)](https://expressjs.com/)
-[![License](https://img.shields.io/badge/License-MIT-blue)](#license)
 
 **Live demo:** [collabx-sves.vercel.app](https://collabx-sves.vercel.app)
 
